@@ -13,6 +13,7 @@ require 'image'
 require 'math.lua'
 require 'util.lua'
 require 'net.lua'
+require 'data.lua'
 
 -- get the dataset
 if not fileExists('cifar10-test.t7') or not fileExists('cifar10-train.t7') then
@@ -54,4 +55,6 @@ output = net:forward(input)
 criterion:forward(output, 3)
 gradients = criterion:backward(output, 3)
 gradInput = net:backward(input, gradients)
-print(#gradInput)
+
+print('Loading images...')
+buildData('/home/boer/leuko/data', 60, 60)

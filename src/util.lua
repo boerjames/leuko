@@ -7,7 +7,7 @@
 --
 
 function fileExists(name)
-    local f = io.open(name,"r")
+    local f = io.open(name,'r')
     if f ~= nil then
         io.close(f)
         return true
@@ -16,5 +16,9 @@ function fileExists(name)
     end
 end
 
-
-
+function osCommand(command)
+    local file = assert(io.popen(command))
+    local output = file:read('*all')
+    file:close()
+    return output
+end
