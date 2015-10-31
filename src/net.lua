@@ -9,30 +9,39 @@
 require 'torch'
 require 'nn'
 
-function buildNeuralNetwork()
+function RyNet(ds)
     -- sequential network
     local net = nn.Sequential()
 
-    -- input image 3 channel, 6 output channels, 5x5 convolution kernel
-    net:add(nn.SpatialConvolution(3, 6, 5, 5))
+    -- 3 input channels, 7 output channels, 5x5 kernel, 1x1 stride, tanh, 2x2 pool, 2x2 stride
+    net:add(nn.SpatialConvolution(3, 7, 5, 5, 1, 1))
+    net:add(nn.Tanh())
+    net:add(nn.SpatialMaxPooling(2, 2, 2, 2))
 
-    -- A max-pooling operation that looks at 2x2 windows and finds the max.
-    net:add(nn.SpatialMaxPooling(2,2,2,2))
+    -- 7 input channels, 14 output channels, 5x5 kernel, 1x1 stride, tanh, 2x2 pool, 2x2 stride
+    net:add(nn.SpatialConvolution(7, 14, 5, 5, 1, 1))
+    net:add(nn.Tanh())
+    net:add(nn.SpatialMaxPooling(2, 2, 2, 2))
 
-    net:add(nn.SpatialConvolution(6, 16, 5, 5))
-    net:add(nn.SpatialMaxPooling(2,2,2,2))
+    -- 14 input channels, 21 output channels, 5x5 kernel, 1x1 stride, tanh, 2x2 pool, 2x2 stride
+    net:add(nn.SpatialConvolution(14, 21, 5, 5, 1, 1))
+    net:add(nn.Tanh())
+    net:add(nn.SpatialMaxPooling(2, 2, 2, 2))
 
-    -- reshapes from a 3D tensor of 16x5x5 into 1D tensor of 16*5*5
-    net:add(nn.View(16*5*5))
+    -- 21 input channels, 50 output channels, 2x2 kernel, 1x1 stride, tanh, 3x3 pool, 3x3 stride
+    net:add(nn.SpatialConvolution(21, 50, 2, 2, 1, 1))
+    net:add(nn.Tanh())
+    net:add(nn.SpatialMaxPooling(3, 3, 3, 3))
 
-    -- fully connected layer (matrix multiplication between input and weights)
-    net:add(nn.Linear(16*5*5, 120))
-    net:add(nn.Linear(120, 84))
+    -- prepare for fully connected layers
+    net:insert(nn.Convert(ds:ioShapes(), 'bchw'), 1)
+    net:add(nn.Collapse(3))
 
-    -- 10 is the number of outputs of the network (in this case, 10 digits)
-    net:add(nn.Linear(84, 10))
+    -- fully connected layer, 5 input channels, 3 output channels (classes)
+    net:add(nn.Linear(50, 5))
+    net:add(nn.Linear(5, 3))
 
-    -- converts the output to a log-probability. Useful for classification problems
+    -- converts the output to a log-probability, useful for classification
     net:add(nn.LogSoftMax())
 
     return net

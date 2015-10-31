@@ -4,7 +4,7 @@ A deep neural network for detecting eye cancer in children.
 ## dependencies
 torch
 
-graphicsmagick
+dp
 
 
-## trouble shooting
+## troubleshooting

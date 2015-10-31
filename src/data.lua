@@ -11,7 +11,10 @@ require 'image'
 require 'torchx'
 require 'util.lua'
 
-function buildDataSet(dataPath, validRatio)
+function buildDataSet(dataPath, validRatio, dataSize)
+    local c = dataSize[1]
+    local h = dataSize[2]
+    local w = dataSize[3]
     validRatio = validRatio or 0.15
 
     -- 1. Load images into input and target Tensors
@@ -19,39 +22,75 @@ function buildDataSet(dataPath, validRatio)
     local pseudo = paths.indexdir(paths.concat(dataPath, 'pseudo')) -- 2
     local leuko = paths.indexdir(paths.concat(dataPath, 'leuko'))   -- 3
 
-    local size = normal:size() + pseudo:size() + leuko:size()
+    --local size = normal:size() + pseudo:size() + leuko:size()
+    local numNormal = 10--normal:size()
+    local numPseudo = 10--pseudo:size()
+    local numLeuko = 10--leuko:size()
+    local size = numNormal + numPseudo + numLeuko
+
     local shuffle = torch.randperm(size)
-    local input = torch.FloatTensor(size, 3, 32, 32)
+    local input = torch.FloatTensor(size, c, h, w)
     local target = torch.IntTensor(size)
 
-    for i = 1, normal:size() do
-        print('Loading ' .. normal:filename(i))
-        local img = image.load(normal:filename(i)):resize(3, 32, 32)
+    print('Loading images...')
+    --for i = 1, normal:size() do
+    for i = 1, numNormal do
+        local img = image.load(normal:filename(i))
+        img = image.scale(img, h, w)
+
+        if img:size(1) == 1 then
+            local rgb = torch.Tensor(c, h, w)
+            for i = 1, c do
+                rgb[i] = img
+            end
+            img = rgb
+        end
+
         local idx = shuffle[i]
         input[idx]:copy(img)
         target[idx] = 1
         collectgarbage()
     end
 
-    for i = 1, pseudo:size() do
-        print('Loading ' .. pseudo:filename(i))
-        local img = image.load(pseudo:filename(i)):resize(3, 32, 32)
-        local idx = shuffle[i + normal:size()]
+    --for i = 1, pseudo:size() do
+    for i = 1, numPseudo do
+        local img = image.load(pseudo:filename(i))
+        img = image.scale(img, h, w)
+
+        if img:size(1) == 1 then
+            local rgb = torch.Tensor(c, h, w)
+            for i = 1, c do
+                rgb[i] = img
+            end
+            img = rgb
+        end
+
+        local idx = shuffle[i + numNormal]
         input[idx]:copy(img)
         target[idx] = 2
         collectgarbage()
     end
 
-    for i = 1, leuko:size() do
-        print('Loading ' .. leuko:filename(i))
-        local img = image.load(leuko:filename(i)):resize(3, 32, 32)
-        local idx = shuffle[i + normal:size() + pseudo:size()]
+    --for i = 1, leuko:size() do
+    for i = 1, numLeuko do
+        local img = image.load(leuko:filename(i))
+        img = image.scale(img, h, w)
+
+        if img:size(1) == 1 then
+            local rgb = torch.Tensor(c, h, w)
+            for i = 1, c do
+                rgb[i] = img
+            end
+            img = rgb
+        end
+
+        local idx = shuffle[i + numNormal + numPseudo]
         input[idx]:copy(img)
         target[idx] = 3
         collectgarbage()
     end
 
-    -- 2. Divide into trian and valid set and wrap into views
+    -- 2. Divide into train and valid set and wrap into views
     local nValid = math.floor(size * validRatio)
     local nTrain = size - nValid
 
@@ -74,6 +113,21 @@ function buildDataSet(dataPath, validRatio)
     return ds
 end
 
+-- todo: get this working
+function loadExperiment(resultsPath, experimentId)
+    local experiment = torch.load(resultsPath .. '/' .. experimentId)
+
+    local reports = {}
+    local logs = paths.indexdir(paths.concat(resultsPath, experimentId, 'log'), 'dat')
+    for i = 1, logs:size() do
+        if string.find(logs:filename(i), 'report') then
+            local report = torch.load(logs:filename(i))
+            table.insert(reports, report)
+        end
+    end
+    return experiment, reports
+end
+
 function moveData(folder)
     local normalPath = folder .. '/normal'
     local pseduoPath = folder .. '/pseudo'
@@ -90,11 +144,11 @@ function moveData(folder)
             print('Moving ' .. filePath)
             if class == nil then
                 osCommand('rm ' .. filePath)
-            elseif class == 0 then
-                osCommand('mv ' .. filePath .. ' ' .. normalPath)
             elseif class == 1 then
-                osCommand('mv ' .. filePath .. ' ' .. pseduoPath)
+                osCommand('mv ' .. filePath .. ' ' .. normalPath)
             elseif class == 2 then
+                osCommand('mv ' .. filePath .. ' ' .. pseduoPath)
+            elseif class == 3 then
                 osCommand('mv ' .. filePath .. ' ' .. leukoPath)
             end
         end
@@ -104,10 +158,10 @@ end
 
 function determineClass(inString)
     if string.find(inString, '_uncertain_leukocoric_eye_') then return nil end
-    if string.find(inString, '_leukocoric_eye_') then return 2 end
-    if string.find(inString, '_iphone_white_eyes_') then return 1 end
-    if string.find(inString, '_eye_') then return 0 end
-    if string.find(inString, '_iphone_normal_with_flash_') then return 0 end
-    if string.find(inString, '_iphone_normal_no_flash_') then return 0 end
+    if string.find(inString, '_leukocoric_eye_') then return 3 end
+    if string.find(inString, '_iphone_white_eyes_') then return 2 end
+    if string.find(inString, '_eye_') then return 1 end
+    if string.find(inString, '_iphone_normal_with_flash_') then return 1 end
+    if string.find(inString, '_iphone_normal_no_flash_') then return 1 end
     return nil
 end

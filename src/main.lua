@@ -1,62 +1,58 @@
---
--- Created by IntelliJ IDEA.
--- User: James
--- Date: 10/6/15
--- Time: 10:27 PM
--- To change this template use File | Settings | File Templates.
---
-
 require 'dp'
 require 'torchx'
 require 'data.lua'
+require 'net.lua'
 
-timer = torch.Timer()
+--[[how to use]]-- $> th main.lua [flag] [parameter]
 
 --[[command line arguments]]--
 cmd = torch.CmdLine()
 cmd:text()
-cmd:text('Image Classification using Convolution Neural Network Training/Optimization')
-cmd:text('Example:')
-cmd:text('$> th convolutionneuralnetwork.lua --batchSize 64 --momentum 0.5')
-cmd:text('Options:')
-cmd:option('--learningRate', 0.1, 'learning rate at t=0')
+
+--[[data parameters]]--
 cmd:option('--validRatio', 0.15, 'ratio to use for validation')
+cmd:option('--dataPath', '/home/boer/data/jpg', 'Where to look for the images')
+cmd:option('--dataSize', '{3,64,64}', 'How big the images should be')
+cmd:option('--resultsPath', '/home/boer/save', 'Where to store results')
+
+--[[network layers]]--
+cmd:option('--channelSize', '{7,14,21,50}', 'Number of output channels for each convolution layer.')
+cmd:option('--kernelSize', '{5,5,5,2}', 'kernel size of each convolution layer. Height = Width')
+cmd:option('--kernelStride', '{1,1,1,1}', 'kernel stride of each convolution layer. Height = Width')
+cmd:option('--poolSize', '{2,2,2,3}', 'size of the max pooling of each convolution layer. Height = Width')
+cmd:option('--poolStride', '{2,2,2,3}', 'stride of the max pooling of each convolution layer. Height = Width')
+cmd:option('--hiddenSize', '{5}', 'size of the dense hidden layers after the convolution')
+cmd:option('--padding', false, 'add math.floor(kernelSize/2) padding to the input of each convolution')
+cmd:option('--dropout', false, 'use dropout')
+cmd:option('--dropoutProb', '{0.2,0.5,0.5}', 'dropout probabilities')
+
+--[[network parameters]]--
+cmd:option('--learningRate', 0.1, 'learning rate at t=0')
 cmd:option('--lrDecay', 'linear', 'type of learning rate decay : adaptive | linear | schedule | none')
+cmd:option('--schedule', '{}', 'learning rate schedule')
 cmd:option('--minLR', 0.00001, 'minimum learning rate')
 cmd:option('--saturateEpoch', 300, 'epoch at which linear decayed LR will reach minLR')
-cmd:option('--schedule', '{}', 'learning rate schedule')
 cmd:option('--maxWait', 4, 'maximum number of epochs to wait for a new minima to be found. After that, the learning rate is decayed by decayFactor.')
 cmd:option('--decayFactor', 0.001, 'factor by which learning rate is decayed for adaptive decay.')
 cmd:option('--maxOutNorm', 1, 'max norm each layers output neuron weights')
 cmd:option('--momentum', 0, 'momentum')
-cmd:option('--channelSize', '{7}', 'Number of output channels for each convolution layer.')
-cmd:option('--kernelSize', '{5,5,5,5}', 'kernel size of each convolution layer. Height = Width')
-cmd:option('--kernelStride', '{1,1,1,1}', 'kernel stride of each convolution layer. Height = Width')
-cmd:option('--poolSize', '{2,2,2,2}', 'size of the max pooling of each convolution layer. Height = Width')
-cmd:option('--poolStride', '{2,2,2,2}', 'stride of the max pooling of each convolution layer. Height = Width')
-cmd:option('--padding', false, 'add math.floor(kernelSize/2) padding to the input of each convolution')
-cmd:option('--batchSize', 64, 'number of examples per batch')
+cmd:option('--maxEpoch', 10, 'maximum number of epochs to run')
+cmd:option('--maxTries', 30, 'maximum number of epochs to try to find a better local minima for early-stopping')
+cmd:option('--batchSize', 10, 'number of examples per batch')
+cmd:option('--accUpdate', false, 'accumulate gradients inplace')
+
+--[[cuda settings]]--
 cmd:option('--cuda', false, 'use CUDA')
 cmd:option('--useDevice', 1, 'sets the device (GPU) to use')
-cmd:option('--maxEpoch', 100, 'maximum number of epochs to run')
-cmd:option('--maxTries', 30, 'maximum number of epochs to try to find a better local minima for early-stopping')
-cmd:option('--dataset', 'Custom', 'which dataset to use : Mnist | NotMnist | Cifar10 | Cifar100 | Svhn | ImageSource | Custom')
-cmd:option('--datapath', '/home/boer/leuko/data', 'Where to look for the images')
-cmd:option('--trainPath', '/home/boer/leuko/data/train', 'Where to look for training images')
-cmd:option('--validPath', '/home/boer/leuko/data/test', 'Where to look for validation images')
-cmd:option('--metaPath', '/home/boer/leuko/data/meta', 'Where to cache meta data')
-cmd:option('--cacheMode', 'writeonce', 'cache mode of FaceDetection (see SmallImageSource constructor for details)')
-cmd:option('--loadSize', '3,100,100', 'Image size')
-cmd:option('--sampleSize', '3,32,32', 'The size to use for cropped images')
+
+--[[preprocessing]]--
 cmd:option('--standardize', false, 'apply Standardize preprocessing')
 cmd:option('--zca', false, 'apply Zero-Component Analysis whitening')
 cmd:option('--lecunlcn', false, 'apply Yann LeCun Local Contrast Normalization (recommended)')
 cmd:option('--activation', 'Tanh', 'transfer function like ReLU, Tanh, Sigmoid')
-cmd:option('--hiddenSize', '{}', 'size of the dense hidden layers after the convolution')
 cmd:option('--batchNorm', false, 'use batch normalization. dropout is mostly redundant with this')
-cmd:option('--dropout', false, 'use dropout')
-cmd:option('--dropoutProb', '{0.2,0.5,0.5}', 'dropout probabilities')
-cmd:option('--accUpdate', false, 'accumulate gradients inplace')
+
+--[[verbosity]]--
 cmd:option('--progress', false, 'print progress bar')
 cmd:option('--silent', false, 'dont print anything to stdout')
 cmd:text()
@@ -65,6 +61,7 @@ if not opt.silent then
     table.print(opt)
 end
 
+opt.dataSize = table.fromString(opt.dataSize)
 opt.channelSize = table.fromString(opt.channelSize)
 opt.kernelSize = table.fromString(opt.kernelSize)
 opt.kernelStride = table.fromString(opt.kernelStride)
@@ -72,14 +69,6 @@ opt.poolSize = table.fromString(opt.poolSize)
 opt.poolStride = table.fromString(opt.poolStride)
 opt.dropoutProb = table.fromString(opt.dropoutProb)
 opt.hiddenSize = table.fromString(opt.hiddenSize)
-opt.loadSize = opt.loadSize:split(',')
-for i = 1, #opt.loadSize do
-    opt.loadSize[i] = tonumber(opt.loadSize[i])
-end
-opt.sampleSize = opt.sampleSize:split(',')
-for i = 1, #opt.sampleSize do
-    opt.sampleSize[i] = tonumber(opt.sampleSize[i])
-end
 
 --[[preprocessing]]--
 local input_preprocess = {}
@@ -95,46 +84,18 @@ if opt.lecunlcn then
 end
 
 --[[data]]--
-
-local ds
-if opt.dataset == 'Mnist' then
-    ds = dp.Mnist{input_preprocess = input_preprocess}
-elseif opt.dataset == 'NotMnist' then
-    ds = dp.NotMnist{input_preprocess = input_preprocess}
-elseif opt.dataset == 'Cifar10' then
-    ds = dp.Cifar10{input_preprocess = input_preprocess}
-elseif opt.dataset == 'Cifar100' then
-    ds = dp.Cifar100{input_preprocess = input_preprocess}
-elseif opt.dataset == 'Svhn' then
-    ds = dp.Svhn{input_preprocess = input_preprocess}
-elseif opt.dataset == 'FaceDetection' then
-    ds = dp.FaceDetection{input_preprocess = input_process, cache_mode = opt.cacheMode}
-elseif opt.dataset == 'ImageSource' then
-    ds = dp.ImageSource{
-        load_size = opt.loadSize,
-        sample_size = opt.sampleSize,
-        train_path = opt.trainPath,
-        valid_path = opt.validPath,
-        meta_path = opt.metaPath,
-        verbose = not opt.silent
-    }
-elseif opt.dataset == 'Custom' then
-    ds = buildDataSet(opt.datapath, 0.15)
-else
-    error("Unknown Dataset")
-end
+local ds = buildDataSet(opt.dataPath, opt.validRatio, opt.dataSize)
 
 function dropout(depth)
     return opt.dropout and (opt.dropoutProb[depth] or 0) > 0 and nn.Dropout(opt.dropoutProb[depth])
 end
 
 --[[Model]]--
-
 cnn = nn.Sequential()
 
 -- convolutional and pooling layers
 depth = 1
-inputSize = ds:imageSize('c') or opt.loadSize[1]
+inputSize = ds:imageSize('c') --or opt.loadSize[1]
 for i=1,#opt.channelSize do
     if opt.dropout and (opt.dropoutProb[depth] or 0) > 0 then
         -- dropout can be useful for regularization
@@ -190,6 +151,9 @@ end
 cnn:add(nn.Linear(inputSize, #(ds:classes())))
 cnn:add(nn.LogSoftMax())
 
+-- RyNet
+cnn = RyNet(ds)
+
 --[[Propagators]]--
 if opt.lrDecay == 'adaptive' then
     ad = dp.AdaptiveDecay{max_wait = opt.maxWait, decay_factor=opt.decayFactor}
@@ -212,7 +176,7 @@ train = dp.Optimizer{
         end
         opt.learningRate = math.max(opt.minLR, opt.learningRate)
         if not opt.silent then
-            print("learningRate", opt.learningRate)
+            print('learningRate', opt.learningRate)
         end
     end
     end,
@@ -255,7 +219,8 @@ xp = dp.Experiment{
         },
         ad
     },
-    random_seed = os.time(),
+    --random_seed = os.time(),
+    random_seed = 2015,
     max_epoch = opt.maxEpoch
 }
 
@@ -275,4 +240,5 @@ xp:verbose(not opt.silent)
 
 xp:run(ds)
 
-print('Elapsed time: ' .. tostring(timer:time():real()) .. ' seconds')
+local report = xp:report()
+print(report.optimizer.feedback.confusion.accuracy)
