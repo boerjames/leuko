@@ -23,9 +23,9 @@ function buildDataSet(dataPath, validRatio, dataSize)
     local leuko = paths.indexdir(paths.concat(dataPath, 'leuko'))   -- 3
 
     --local size = normal:size() + pseudo:size() + leuko:size()
-    local numNormal = 10--normal:size()
-    local numPseudo = 10--pseudo:size()
-    local numLeuko = 10--leuko:size()
+    local numNormal = normal:size()
+    local numPseudo = pseudo:size()
+    local numLeuko = leuko:size()
     local size = numNormal + numPseudo + numLeuko
 
     local shuffle = torch.randperm(size)
@@ -113,19 +113,28 @@ function buildDataSet(dataPath, validRatio, dataSize)
     return ds
 end
 
--- todo: get this working
-function loadExperiment(resultsPath, experimentId)
-    local experiment = torch.load(resultsPath .. '/' .. experimentId)
-
+function loadReports(resultsPath)
     local reports = {}
-    local logs = paths.indexdir(paths.concat(resultsPath, experimentId, 'log'), 'dat')
+    local logs = paths.indexdir(resultsPath, 'dat')
     for i = 1, logs:size() do
         if string.find(logs:filename(i), 'report') then
             local report = torch.load(logs:filename(i))
             table.insert(reports, report)
         end
     end
-    return experiment, reports
+
+    table.sort(reports, function(a,b) return a.epoch < b.epoch end)
+    return reports
+end
+
+function getLearningAccuracy(reports)
+    local train = {}
+    local valid = {}
+    for i = 1, #reports do
+        table.insert(train, reports[i].optimizer.feedback.confusion.accuracy)
+        table.insert(valid, reports[i].validator.feedback.confusion.accuracy)
+    end
+    return train, valid
 end
 
 function moveData(folder)

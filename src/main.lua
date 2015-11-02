@@ -36,7 +36,7 @@ cmd:option('--maxWait', 4, 'maximum number of epochs to wait for a new minima to
 cmd:option('--decayFactor', 0.001, 'factor by which learning rate is decayed for adaptive decay.')
 cmd:option('--maxOutNorm', 1, 'max norm each layers output neuron weights')
 cmd:option('--momentum', 0, 'momentum')
-cmd:option('--maxEpoch', 10, 'maximum number of epochs to run')
+cmd:option('--maxEpoch', 100, 'maximum number of epochs to run')
 cmd:option('--maxTries', 30, 'maximum number of epochs to try to find a better local minima for early-stopping')
 cmd:option('--batchSize', 10, 'number of examples per batch')
 cmd:option('--accUpdate', false, 'accumulate gradients inplace')
@@ -241,4 +241,3 @@ xp:verbose(not opt.silent)
 xp:run(ds)
 
 local report = xp:report()
-print(report.optimizer.feedback.confusion.accuracy)
