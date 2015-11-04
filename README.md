@@ -9,13 +9,17 @@ http://torch.ch/docs/getting-started.html
 #### luarocks
 For each of the following packages, run: `luarocks install <package>`
 
-dp
+#### cuda
+https://developer.nvidia.com/cuda-toolkit
 
-dpnn
+## resources
 
-graphicsmagick
+#### torch cheatsheet
+https://github.com/torch/torch7/wiki/Cheatsheet
 
-luafilesystem
-
+#### read the docs
+https://torch7.readthedocs.org/en/readthedocs/index.html
+https://nn.readthedocs.org/en/rtd/index.html
+https://dp.readthedocs.org/en/latest/index.html
 
 ## troubleshooting

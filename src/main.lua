@@ -36,7 +36,7 @@ cmd:option('--maxWait', 4, 'maximum number of epochs to wait for a new minima to
 cmd:option('--decayFactor', 0.001, 'factor by which learning rate is decayed for adaptive decay.')
 cmd:option('--maxOutNorm', 1, 'max norm each layers output neuron weights')
 cmd:option('--momentum', 0, 'momentum')
-cmd:option('--maxEpoch', 100, 'maximum number of epochs to run')
+cmd:option('--maxEpoch', 10, 'maximum number of epochs to run')
 cmd:option('--maxTries', 30, 'maximum number of epochs to try to find a better local minima for early-stopping')
 cmd:option('--batchSize', 10, 'number of examples per batch')
 cmd:option('--accUpdate', false, 'accumulate gradients inplace')
@@ -91,7 +91,7 @@ function dropout(depth)
 end
 
 --[[Model]]--
-cnn = nn.Sequential()
+net = nn.Sequential()
 
 -- convolutional and pooling layers
 depth = 1
@@ -99,9 +99,9 @@ inputSize = ds:imageSize('c') --or opt.loadSize[1]
 for i=1,#opt.channelSize do
     if opt.dropout and (opt.dropoutProb[depth] or 0) > 0 then
         -- dropout can be useful for regularization
-        cnn:add(nn.SpatialDropout(opt.dropoutProb[depth]))
+        net:add(nn.SpatialDropout(opt.dropoutProb[depth]))
     end
-    cnn:add(nn.SpatialConvolution(
+    net:add(nn.SpatialConvolution(
         inputSize, opt.channelSize[i],
         opt.kernelSize[i], opt.kernelSize[i],
         opt.kernelStride[i], opt.kernelStride[i],
@@ -109,11 +109,11 @@ for i=1,#opt.channelSize do
     ))
     if opt.batchNorm then
         -- batch normalization can be awesome
-        cnn:add(nn.SpatialBatchNormalization(opt.channelSize[i]))
+        net:add(nn.SpatialBatchNormalization(opt.channelSize[i]))
     end
-    cnn:add(nn[opt.activation]())
+    net:add(nn[opt.activation]())
     if opt.poolSize[i] and opt.poolSize[i] > 0 then
-        cnn:add(nn.SpatialMaxPooling(
+        net:add(nn.SpatialMaxPooling(
             opt.poolSize[i], opt.poolSize[i],
             opt.poolStride[i] or opt.poolSize[i],
             opt.poolStride[i] or opt.poolSize[i]
@@ -123,33 +123,33 @@ for i=1,#opt.channelSize do
     depth = depth + 1
 end
 -- get output size of convolutional layers
-outsize = cnn:outside{1,ds:imageSize('c'),ds:imageSize('h'),ds:imageSize('w')}
+outsize = net:outside{1,ds:imageSize('c'),ds:imageSize('h'),ds:imageSize('w')}
 inputSize = outsize[2]*outsize[3]*outsize[4]
 dp.vprint(not opt.silent, "input to dense layers has: "..inputSize.." neurons")
 
-cnn:insert(nn.Convert(ds:ioShapes(), 'bchw'), 1)
+net:insert(nn.Convert(ds:ioShapes(), 'bchw'), 1)
 
 -- dense hidden layers
-cnn:add(nn.Collapse(3))
+net:add(nn.Collapse(3))
 for i,hiddenSize in ipairs(opt.hiddenSize) do
     if opt.dropout and (opt.dropoutProb[depth] or 0) > 0 then
-        cnn:add(nn.Dropout(opt.dropoutProb[depth]))
+        net:add(nn.Dropout(opt.dropoutProb[depth]))
     end
-    cnn:add(nn.Linear(inputSize, hiddenSize))
+    net:add(nn.Linear(inputSize, hiddenSize))
     if opt.batchNorm then
-        cnn:add(nn.BatchNormalization(hiddenSize))
+        net:add(nn.BatchNormalization(hiddenSize))
     end
-    cnn:add(nn[opt.activation]())
+    net:add(nn[opt.activation]())
     inputSize = hiddenSize
     depth = depth + 1
 end
 
 -- output layer
 if opt.dropout and (opt.dropoutProb[depth] or 0) > 0 then
-    cnn:add(nn.Dropout(opt.dropoutProb[depth]))
+    net:add(nn.Dropout(opt.dropoutProb[depth]))
 end
-cnn:add(nn.Linear(inputSize, #(ds:classes())))
-cnn:add(nn.LogSoftMax())
+net:add(nn.Linear(inputSize, #(ds:classes())))
+net:add(nn.LogSoftMax())
 
 -- RyNet
 cnn = RyNet(ds)
@@ -206,12 +206,12 @@ test = ds:testSet() and dp.Evaluator{
 
 --[[Experiment]]--
 xp = dp.Experiment{
-    model = cnn,
+    model = net,
     optimizer = train,
     validator = ds:validSet() and valid,
     tester = ds:testSet() and test,
     observer = {
-        dp.FileLogger(),
+        dp.FileLogger(opt.resultsPath),
         dp.EarlyStopper{
             error_report = {'validator','feedback','confusion','accuracy'},
             maximize = true,
@@ -238,6 +238,8 @@ if not opt.silent then
 end
 xp:verbose(not opt.silent)
 
+local start_time = os.time()
 xp:run(ds)
+print('Elapsed time: ' .. os.difftime(os.time(), start_time) .. ' seconds')
 
-local report = xp:report()
+torch.save(paths.concat(opt.resultsPath, xp:report().id .. '_net.dat'), net)
