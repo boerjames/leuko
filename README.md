@@ -19,7 +19,9 @@ https://github.com/torch/torch7/wiki/Cheatsheet
 
 #### read the docs
 https://torch7.readthedocs.org/en/readthedocs/index.html
+
 https://nn.readthedocs.org/en/rtd/index.html
+
 https://dp.readthedocs.org/en/latest/index.html
 
 ## troubleshooting
