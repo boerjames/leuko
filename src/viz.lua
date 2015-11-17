@@ -1,13 +1,23 @@
 --
 -- Created by IntelliJ IDEA.
 -- User: boer
--- Date: 11/3/15
--- Time: 8:09 PM
+-- Date: 11/2/15
+-- Time: 3:45 PM
 -- To change this template use File | Settings | File Templates.
 --
 
 require 'dp'
 require 'optim'
+require 'extraction.lua'
+
+function iTorchPrepare()
+    local path = '/home/boer/save/rynet/log'
+    local reports = loadReports(path)
+
+    local train, valid = getLearningAccuracy(reports)
+    torch.save('/home/boer/leuko/itorch/train.t7', train)
+    torch.save('/home/boer/leuko/itorch/valid.t7', valid)
+end
 
 function loadReports(resultsPath)
     local reports = {}
