@@ -11,7 +11,7 @@ cmd:text()
 
 --[[data parameters]]--
 cmd:option('--validRatio', 0.15, 'ratio to use for validation')
-cmd:option('--dataPath', '/home/boer/data/jpg', 'Where to look for the images')
+cmd:option('--dataPath', '/home/boer/data/vanilla', 'Where to look for the images')
 cmd:option('--dataSize', '{3,64,64}', 'How big the images should be')
 cmd:option('--resultsPath', '/home/boer/save', 'Where to store results')
 
