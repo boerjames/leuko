@@ -8,17 +8,14 @@
 
 require 'dp'
 require 'optim'
-require 'extraction.lua'
 
 function iTorchPrepare()
     local path = '/home/boer/save/rynet/log'
     local reports = loadReports(path)
 
-    local train, valid, avg_train, avg_valid = getLearningAccuracy(reports)
+    local train, valid = getLearningAccuracy(reports)
     torch.save('/home/boer/leuko/itorch/train.t7', train)
     torch.save('/home/boer/leuko/itorch/valid.t7', valid)
-    torch.save('/home/boer/leuko/itorch/avg_train.t7', avg_train)
-    torch.save('/home/boer/leuko/itorch/avg_valid.t7', avg_valid)
 end
 
 function loadReports(resultsPath)
@@ -38,15 +35,11 @@ end
 function getLearningAccuracy(reports)
     local train = {}
     local valid = {}
-    local avg_per_class_train = {}
-    local avg_per_class_valid = {}
     for i = 1, #reports do
         table.insert(train, reports[i].optimizer.feedback.confusion.accuracy)
         table.insert(valid, reports[i].validator.feedback.confusion.accuracy)
-        table.insert(avg_per_class_train, reports[i].optimizer.feedback.confusion.avg_per_class_accuracy)
-        table.insert(avg_per_class_valid, reports[i].validator.feedback.confusion.avg_per_class_accuracy)
     end
-    return train, valid, avg_per_class_train, avg_per_class_valid
+    return train, valid, avg_train, avg_valid
 end
 
 --[[ a report contains the following structure
