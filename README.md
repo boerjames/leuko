@@ -3,14 +3,22 @@ A deep neural network for detecting eye cancer in children.
 
 ## dependencies
 
+#### cuda
+https://developer.nvidia.com/cuda-toolkit
+
+#### cudnn
+https://developer.nvidia.com/cudnn
+
 #### torch
 http://torch.ch/docs/getting-started.html
 
-#### luarocks
-For each of the following packages, run: `luarocks install <package>`
+#### torch packages
 
-#### cuda
-https://developer.nvidia.com/cuda-toolkit
+image | https://github.com/torch/image
+
+cutorch | https://github.com/torch/cutorch
+
+cudnn | https://github.com/soumith/cudnn.torch
 
 ## resources
 
