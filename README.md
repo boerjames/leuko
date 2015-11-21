@@ -18,7 +18,13 @@ image | https://github.com/torch/image
 
 cutorch | https://github.com/torch/cutorch
 
+cunn | https://github.com/torch/cunn
+
 cudnn | https://github.com/soumith/cudnn.torch
+
+dp | https://github.com/nicholas-leonard/dp
+
+fs
 
 ## resources
 
