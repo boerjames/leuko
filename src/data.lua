@@ -10,7 +10,6 @@ require 'dp'
 require 'optim'
 require 'image'
 require 'torchx'
-require 'util.lua'
 
 function buildDataSet(dataPath, validRatio, dataSize)
     print('Loading images...')
