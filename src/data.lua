@@ -11,7 +11,14 @@ require 'optim'
 require 'image'
 require 'torchx'
 
-function randomTranslation()
+function randomTranslation(img, crop, variation)
+    local x = crop[1] + variation * (math.random() - 0.5)
+    local y = crop[2] + variation * (math.random() - 0.5)
+
+    local width = crop[3] - crop[1]
+    local height = crop[4] - crop[2]
+
+    return image.crop(img, x, y, x + width, y + height)
 end
 
 function randomScale()
@@ -20,12 +27,21 @@ end
 function randomRotation()
 end
 
-function generateDataSet(dataPath, transformPath, dataSize)
-    local c = dataSize[1]
-    local h = dataSize[2]
-    local w = dataSize[3]
+function standard2torch(standard_point, d)
+    local torch_point = {}
+    torch_point[1] = d - standard_point[2]
+    torch_point[2] = standard_point[1]
+    return torch_point
+end
+function torch2standard(torch_point, d)
+    local standard_point = {}
+    standard_point[1] = torch_point[2]
+    standard_point[2] = d - torch_point[1]
+    return standard_point
+end
 
-    print(validRatio, c, h, w)
+function generateDataSet(dataPath, transformPath, dataSize)
+
 end
 
 function buildDataSet(dataPath, validRatio, dataSize)
