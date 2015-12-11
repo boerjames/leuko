@@ -11,12 +11,28 @@ require 'optim'
 require 'image'
 require 'torchx'
 
+function randomTranslation()
+end
+
+function randomScale()
+end
+
+function randomRotation()
+end
+
+function generateDataSet(dataPath, transformPath, dataSize)
+    local c = dataSize[1]
+    local h = dataSize[2]
+    local w = dataSize[3]
+
+    print(validRatio, c, h, w)
+end
+
 function buildDataSet(dataPath, validRatio, dataSize)
     print('Loading images...')
     local c = dataSize[1]
     local h = dataSize[2]
     local w = dataSize[3]
-    validRatio = validRatio or 0.15
 
     -- 1. Load images into input and target Tensors
     local normal = paths.indexdir(paths.concat(dataPath, 'normal')) -- 1
