@@ -27,17 +27,11 @@ end
 function randomRotation()
 end
 
-function standard2torch(standard_point, d)
-    local torch_point = {}
-    torch_point[1] = d - standard_point[2]
-    torch_point[2] = standard_point[1]
-    return torch_point
+function standard2torch(point, height)
+    return {point[1], height - point[2]}
 end
-function torch2standard(torch_point, d)
-    local standard_point = {}
-    standard_point[1] = torch_point[2]
-    standard_point[2] = d - torch_point[1]
-    return standard_point
+function torch2standard(point, height)
+    return {point[1], height - point[2]}
 end
 
 function generateDataSet(dataPath, transformPath, dataSize)
@@ -55,8 +49,8 @@ function buildDataSet(dataPath, validRatio, dataSize)
     local leuko = paths.indexdir(paths.concat(dataPath, 'leuko'))   -- 2
 
     --local size = normal:size() + leuko:size()
-    local numNormal = 10--normal:size()
-    local numLeuko = 10--leuko:size()
+    local numNormal = 100--normal:size()
+    local numLeuko = 100--leuko:size()
     local size = numNormal + numLeuko
 
     local shuffle = torch.randperm(size)
