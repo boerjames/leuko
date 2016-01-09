@@ -14,17 +14,15 @@ http://torch.ch/docs/getting-started.html
 
 #### torch packages
 
-image | https://github.com/torch/image
+dp | https://github.com/nicholas-leonard/dp
+
+fs | https://github.com/clementfarabet/lua-fs-0.3
 
 cutorch | https://github.com/torch/cutorch
 
 cunn | https://github.com/torch/cunn
 
 cudnn | https://github.com/soumith/cudnn.torch
-
-dp | https://github.com/nicholas-leonard/dp
-
-fs
 
 ## resources
 
@@ -39,3 +37,9 @@ https://nn.readthedocs.org/en/rtd/index.html
 https://dp.readthedocs.org/en/latest/index.html
 
 ## troubleshooting
+
+#### for mac
+
+`brew install findutils` to get gfind
+
+`brew install coreutils` to get gwc
