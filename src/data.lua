@@ -1,22 +1,27 @@
---
--- Created by IntelliJ IDEA.
--- User: boer
--- Date: 10/9/15
--- Time: 10:58 AM
--- To change this template use File | Settings | File Templates.
---
 
 require 'dp'
 require 'optim'
 require 'image'
 require 'torchx'
 
-function randomTranslation(img, crop, variation)
-    local x = crop[1] + variation * (math.random() - 0.5)
-    local y = crop[2] + variation * (math.random() - 0.5)
+-- crop the given image on the given crop boundary, with some random given variation
+function randomTranslation(img, crop_boundary, variation)
+    --[[
+    img: the torch image to crop
 
-    local width = crop[3] - crop[1]
-    local height = crop[4] - crop[2]
+    crop_boundary: coincides with crop_boundary defintion from database
+     [1] left boundary
+     [2] right boundary
+     [3] width of crop
+     [4] height of crop
+
+    varation: the number of pixels to randomly vary
+    --]]
+
+    local x = crop_boundary[1] + (torch.uniform(0, variation) - variation / 2)
+    local y = crop_boundary[2] + (torch.uniform(0, variation) - variation / 2)
+    local width = crop_boundary[3]
+    local height = crop_boundary[4]
 
     return image.crop(img, x, y, x + width, y + height)
 end
@@ -25,13 +30,6 @@ function randomScale()
 end
 
 function randomRotation()
-end
-
-function standard2torch(point, height)
-    return {point[1], height - point[2]}
-end
-function torch2standard(point, height)
-    return {point[1], height - point[2]}
 end
 
 function generateDataSet(dataPath, transformPath, dataSize)
@@ -216,6 +214,17 @@ function buildDataSetPseudo(dataPath, validRatio, dataSize)
 end
 
 function determineClass(inString)
+    if string.find(inString, '_uncertain_leukocoric_eye_') then return nil end
+    if string.find(inString, '_leukocoric_eye_') then return 2 end
+    if string.find(inString, '_iphone_white_eyes_') then return 2 end
+    if string.find(inString, '_eye_') then return 1 end
+    if string.find(inString, '_iphone_normal_with_flash_') then return 1 end
+    if string.find(inString, '_iphone_normal_no_flash_') then return 1 end
+    return nil
+end
+
+
+function determineClassPseudo(inString)
     if string.find(inString, '_uncertain_leukocoric_eye_') then return nil end
     if string.find(inString, '_leukocoric_eye_') then return 3 end
     if string.find(inString, '_iphone_white_eyes_') then return 2 end

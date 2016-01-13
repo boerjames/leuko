@@ -1,10 +1,3 @@
---
--- Created by IntelliJ IDEA.
--- User: boer
--- Date: 11/2/15
--- Time: 3:45 PM
--- To change this template use File | Settings | File Templates.
---
 
 require 'dp'
 require 'optim'

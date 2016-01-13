@@ -1,10 +1,3 @@
---
--- Created by IntelliJ IDEA.
--- User: James
--- Date: 10/8/15
--- Time: 10:36 AM
--- To change this template use File | Settings | File Templates.
---
 
 require 'torch'
 require 'nn'
