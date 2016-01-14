@@ -4,7 +4,7 @@ require 'optim'
 require 'image'
 require 'torchx'
 
--- crop the given image on the given crop boundary, with some random given variation
+-- crop the given image on the given crop boundary, with some random given variation in translation
 function randomTranslation(img, crop_boundary, variation)
     --[[
     img: the torch image to crop
@@ -26,7 +26,15 @@ function randomTranslation(img, crop_boundary, variation)
     return image.crop(img, x, y, x + width, y + height)
 end
 
-function randomScale()
+-- crop the given image on the given crop boundary, with some random given variation in scale
+function randomScale(img, crop_boundary, variation)
+    local v = torch.uniform(0, variation) - variation / 2
+    local x = crop_boundary[1] + v
+    local y = crop_boundary[2] + v
+    local width = crop_boundary[3] - 2 * v
+    local height = crop_boundary[4] - 2 * v
+
+    return image.crop(img, x, y, x + width, y + height)
 end
 
 function randomRotation()
