@@ -15,7 +15,7 @@ function randomTranslation(img, crop_boundary, variation)
      [3] width of crop
      [4] height of crop
 
-    varation: the number of pixels to randomly vary
+    variation: the number of pixels to randomly vary in translation
     --]]
 
     local x = crop_boundary[1] + (torch.uniform(0, variation) - variation / 2)
@@ -28,6 +28,17 @@ end
 
 -- crop the given image on the given crop boundary, with some random given variation in scale
 function randomScale(img, crop_boundary, variation)
+    --[[
+    img: the torch image to crop
+
+    crop_boundary: coincides with crop_boundary defintion from database
+     [1] left boundary
+     [2] right boundary
+     [3] width of crop
+     [4] height of crop
+
+    variation: the number of pixels to randomly vary in scale
+    --]]
     local v = torch.uniform(0, variation) - variation / 2
     local x = crop_boundary[1] + v
     local y = crop_boundary[2] + v
