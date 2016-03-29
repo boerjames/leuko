@@ -2,7 +2,7 @@
 FROM centos:7
 
 # COMMON DEPENDENCIES
-RUN yum install -y gcc vim sudo wget 
+RUN yum install -y gcc vim sudo wget curl
 
 # CUDA DEPENDENCIES
 RUN yum install -y epel-release
@@ -19,12 +19,14 @@ RUN yum clean all
 RUN yum update -y
 
 # CUDNN
-COPY cudnn-7.0-linux-x64-v3.0-prod.tgz /tmp
+#COPY cudnn-7.0-linux-x64-v3.0-prod.tgz /tmp
 
 RUN cd /tmp && \
+	curl -fL http://developer.download.nvidia.com/compute/redist/cudnn/v3/cudnn-7.0-linux-x64-v3.0-prod.tgz > cudnn-7.0-linux-x64-v3.0-prod.tgz && \
 	tar -zxvf cudnn-7.0-linux-x64-v3.0-prod.tgz && \
 	cp cuda/include/* /usr/local/cuda-7.5/include/ && \
-	cp cuda/lib64/* /usr/local/cuda-7.5/lib64/
+	cp cuda/lib64/* /usr/local/cuda-7.5/lib64/ && \
+	rm cudnn-7.0-linux-x64-v3.0-prod.tgz
 
 # CUDA ENVIRONMENT
 RUN touch /etc/profile.d/cuda.sh
@@ -57,7 +59,21 @@ RUN cd ~ && git clone https://github.com/soumith/cudnn.torch.git && \
 	cd cudnn.torch && git checkout R3 && luarocks make
 
 # DEEP ENVIRONMENT
-ENV DEEP_DATA_PATH=/root/deep/data \
-	DEEP_SAVE_PATH=/root/deep/save \
-	DEEP_UNIT_PATH=/root/deep/unit \
-	DEEP_LOG_PATH=/root/deep/log
+ENV DEEP_DATA_PATH /root/deep/data
+ENV	DEEP_SAVE_PATH /root/deep/save
+ENV	DEEP_UNIT_PATH /root/deep/unit
+ENV	DEEP_LOG_PATH /root/deep/log
+
+# POSTGRES
+RUN yum install -y postgresql postgresql-libs postgresql-devel
+RUN echo "hypero-db:5432:*:hypero:hypero" >> ~/.pgpass && \
+	chmod og-rwx ~/.pgpass
+RUN luarocks install luasql-postgres PGSQL_INCDIR=/usr/include/pgsql/server && \
+	luarocks install https://raw.githubusercontent.com/Element-Research/hypero/master/rocks/hypero-scm-1.rockspec
+ENV HYPER_PG_CONN "dbname=hypero user=hypero host=hypero-db"
+
+# EXAMPLE FILES
+RUN cd ~/ && \
+	wget https://raw.githubusercontent.com/Element-Research/hypero/master/examples/neuralnetwork.lua && \
+	wget https://raw.githubusercontent.com/nicholas-leonard/dp/master/examples/convolutionneuralnetwork.lua
+	git clone https://github.com/Element-Research/hypero.git

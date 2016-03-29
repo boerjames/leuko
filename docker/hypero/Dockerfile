@@ -11,6 +11,5 @@ RUN service postgresql start && \
 USER root
 RUN echo "host all all all trust" >> /etc/postgresql/9.3/main/pg_hba.conf
 RUN echo "listen_addresses='*'" >> /etc/postgresql/9.3/main/postgresql.conf
-EXPOSE 5432
 
-RUN service postgresql restart
+RUN service postgresql stop
