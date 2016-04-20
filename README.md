@@ -1,29 +1,6 @@
 # leuko
 A deep neural network for detecting eye cancer in children.
 
-## dependencies
-
-#### cuda
-https://developer.nvidia.com/cuda-toolkit
-
-#### cudnn
-https://developer.nvidia.com/cudnn
-
-#### torch
-http://torch.ch/docs/getting-started.html
-
-#### torch packages
-
-dp | https://github.com/nicholas-leonard/dp
-
-fs | https://github.com/clementfarabet/lua-fs-0.3
-
-cutorch | https://github.com/torch/cutorch
-
-cunn | https://github.com/torch/cunn
-
-cudnn | https://github.com/soumith/cudnn.torch
-
 ## resources
 
 #### torch cheatsheet
