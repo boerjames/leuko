@@ -1,7 +1,4 @@
-local image_width, image_height = 200, 200
-local set1, set2 = {}, {}
-
-local function fillpixelset(crop, image_width, image_height)
+local function pixelset(crop, image_width, image_height)
     local left, top, width, height = unpack(crop)
     local set = {}
 
@@ -50,24 +47,27 @@ local function setsimilarity(s1, s2)
     end
 
     local overlap = ilen / ulen
-
-    print('s1len',s1len)
-    print('s2len',s2len)
-    print('ulen',ulen)
-    print('ilen',ilen)
-    print('overlap',overlap)
-
-    if overlap < 0.5 then return nil end
-    if s2len > s1len then
-        return s2
+    if s1len > s2len then
+        return overlap, 1
     else
-        return s1
+        return overlap, 2
     end
+
 end
 
-set1 = fillpixelset(set1, {50,50,50,50}, image_width, image_height)
-set2 = fillpixelset(set2, {75,75,50,50}, image_width, image_height)
-local res = setsimilarity(set1, set2)
-if res == nil then print('nil') else print('not nil') end
+local image_width, image_height = 1024, 1024
+local crop1, crop2, crop3, crop4 = {50,50,100,100}, {49,49,100,100}, {100,100,200,200}, {150,150,100,100}
+local pixelsets = {}
+table.insert(pixelsets, pixelset(crop1, image_width, image_height))
+table.insert(pixelsets, pixelset(crop2, image_width, image_height))
+table.insert(pixelsets, pixelset(crop3, image_width, image_height))
+table.insert(pixelsets, pixelset(crop4, image_width, image_height))
+
+for i = 1, #pixelsets do
+    for j = i + 1, #pixelsets do
+        local sim, iorj = setsimilarity(pixelsets[i], pixelsets[j])
+        print(i, j, sim, iorj)
+    end
+end
 
 --th hypero/scripts/export.lua --batteryName 'Neural Network - Mnist' --versionDesc 'Neural Network v1' --metaNames 'hostname' --resultNames 'trainAcc,validAcc,testAcc' --orderBy 'validAcc' --desc

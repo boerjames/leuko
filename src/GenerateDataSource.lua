@@ -49,12 +49,16 @@ for i = 1, num_image_rows do
     image_cursor:fetch(image_res, "a")
     print('image ' .. image_res["id"])
 
-    local eye_cursor = conn:execute("select eye_tag.id, eye_tag.label, eye_tag.left, eye_tag.top, eye_tag.width, eye_tag.height from eye_tag where eye_tag.image_id=" .. image_res["id"])
-    local num_eye_rows = eye_cursor:numrows()
-    local eye_res = {}
+    local eye_cursor = conn:execute("select eye_tag.id, eye_tag.label, eye_tag.top, eye_tag.left, eye_tag.width, eye_tag.height from eye_tag where eye_tag.image_id=" .. image_res["id"])
+    local num_eye_tags = eye_cursor:numrows()
+    local eye_tags, eye_tags_tmp = {}, {}
 
     for j = 1, num_eye_rows do
-        eye_cursor:fetch(eye_res, "a")
-        print('  eye ' .. eye_res["id"])
+        eye_cursor:fetch(eye_tags_tmp, "a")
+        table.insert(eye_tags, eye_tags_tmp)
     end
+
+    print(image_res["id"])
+    print(eye_tags)
+    print()
 end
