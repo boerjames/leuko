@@ -15,33 +15,33 @@ cmd:option('--schedule', '{}', 'learning rate schedule')
 cmd:option('--maxWait', 4, 'maximum number of epochs to wait for a new minima to be found. After that, the learning rate is decayed by decayFactor.')
 cmd:option('--decayFactor', 0.001, 'factor by which learning rate is decayed for adaptive decay.')
 cmd:option('--maxOutNorm', 1, 'max norm each layers output neuron weights')
-cmd:option('--momentum',0, 'momentum')
-cmd:option('--channelSize', '{32,64,128}', 'Number of output channels for each convolution layer.')
-cmd:option('--kernelSize', '{3,3,3}', 'kernel size of each convolution layer. Height = Width')
-cmd:option('--kernelStride', '{1,1,1,1,1,1}', 'kernel stride of each convolution layer. Height = Width')
-cmd:option('--poolSize', '{2,2,2,2,2,2}', 'size of the max pooling of each convolution layer. Height = Width')
-cmd:option('--poolStride', '{2,2,2,2,2,2}', 'stride of the max pooling of each convolution layer. Height = Width')
-cmd:option('--padding', true, 'add math.floor(kernelSize/2) padding to the input of each convolution')
-cmd:option('--batchSize',64, 'number of examples per batch')
-cmd:option('--cuda',true, 'use CUDA')
+cmd:option('--momentum', 0, 'momentum')
+cmd:option('--channelSize', '{8,16,24,32}', 'Number of output channels for each convolution layer.')
+cmd:option('--kernelSize', '{3,3,3,3}', 'kernel size of each convolution layer. Height = Width')
+cmd:option('--kernelStride', '{1,1,1,1}', 'kernel stride of each convolution layer. Height = Width')
+cmd:option('--poolSize', '{2,2,2,2}', 'size of the max pooling of each convolution layer. Height = Width')
+cmd:option('--poolStride', '{2,2,2,2}', 'stride of the max pooling of each convolution layer. Height = Width')
+cmd:option('--padding', true, 'add math.floor(kernelSize/2) padding to the input of each convolution') 
+cmd:option('--batchSize', 32, 'number of examples per batch')
+cmd:option('--cuda', true, 'use CUDA')
 cmd:option('--useDevice', 1, 'sets the device (GPU) to use')
 cmd:option('--maxEpoch', 200, 'maximum number of epochs to run')
-cmd:option('--maxTries', 30, 'maximum number of epochs to try to find a better local minima for early-stopping')
-cmd:option('--dataset', 'Mnist', 'which dataset to use : Mnist | NotMnist | Cifar10 | Cifar100 | Svhn | ImageSource')
+cmd:option('--maxTries', 100, 'maximum number of epochs to try to find a better local minima for early-stopping')
+cmd:option('--dataset', 'Custom', 'which dataset to use : Mnist | NotMnist | Cifar10 | Cifar100 | Svhn | ImageSource | Custom')
 cmd:option('--trainPath', '.', 'Where to look for training images')
 cmd:option('--validPath', '.', 'Where to look for validation images')
 cmd:option('--metaPath', '.', 'Where to cache meta data')
 cmd:option('--cacheMode', 'writeonce', 'cache mode of FaceDetection (see SmallImageSource constructor for details)')
 cmd:option('--loadSize', '', 'Image size')
 cmd:option('--sampleSize', '.', 'The size to use for cropped images')
-cmd:option('--standardize',false, 'apply Standardize preprocessing')
+cmd:option('--standardize', false, 'apply Standardize preprocessing')
 cmd:option('--zca', false, 'apply Zero-Component Analysis whitening')
-cmd:option('--lecunlcn',true, 'apply Yann LeCun Local Contrast Normalization (recommended)')
+cmd:option('--lecunlcn', false, 'apply Yann LeCun Local Contrast Normalization (recommended)')
 cmd:option('--activation', 'ReLU', 'transfer function like ReLU, Tanh, Sigmoid')
-cmd:option('--hiddenSize', '{256}', 'size of the dense hidden layers after the convolution')
+cmd:option('--hiddenSize', '{50}', 'size of the dense hidden layers after the convolution')
 cmd:option('--batchNorm', false, 'use batch normalization. dropout is mostly redundant with this')
-cmd:option('--dropout',true, 'use dropout')
-cmd:option('--dropoutProb', '{0.2,0.2,0.2,0.5}', 'dropout probabilities')
+cmd:option('--dropout', false, 'use dropout')
+cmd:option('--dropoutProb', '{0.2,0.2,0.2,0.2,0.5}', 'dropout probabilities')
 cmd:option('--accUpdate', false, 'accumulate gradients inplace')
 cmd:option('--progress', true, 'print progress bar')
 cmd:option('--silent', false, 'dont print anything to stdout')
@@ -81,14 +81,27 @@ if opt.lecunlcn then
 end
 
 --[[data]]--
-local data_path = '/Users/James/Downloads/organized'
-local data_size = {3,64,64}
-local all_data = true
-local test_percentage = 0.1
-local valid_percentage = 0.1
-local verbose = true
---local ds = DataLoader.loadData(data_path, data_size, all_data, test_percentage, valid_percentage, verbose)
-local ds = torch.load('age-dataset.t7')
+
+local ds
+if opt.dataset == 'Mnist' then
+   ds = dp.Mnist{input_preprocess = input_preprocess}
+elseif opt.dataset == 'NotMnist' then
+   ds = dp.NotMnist{input_preprocess = input_preprocess}
+elseif opt.dataset == 'Cifar10' then
+   ds = dp.Cifar10{input_preprocess = input_preprocess}
+elseif opt.dataset == 'Cifar100' then
+   ds = dp.Cifar100{input_preprocess = input_preprocess}
+elseif opt.dataset == 'Svhn' then
+   ds = dp.Svhn{input_preprocess = input_preprocess}
+elseif opt.dataset == 'FaceDetection' then
+   ds = dp.FaceDetection{input_preprocess = input_process, cache_mode = opt.cacheMode}
+elseif opt.dataset == 'ImageSource' then
+   ds = dp.ImageSource{load_size = opt.loadSize, sample_size = opt.sampleSize, train_path = opt.trainPath, valid_path = opt.validPath, meta_path = opt.metaPath, verbose = not opt.silent}
+elseif opt.dataset == 'Custom' then
+   ds = torch.load('old-ds.t7')
+else
+    error("Unknown Dataset")
+end
 
 function dropout(depth)
    return opt.dropout and (opt.dropoutProb[depth] or 0) > 0 and nn.Dropout(opt.dropoutProb[depth])
@@ -107,8 +120,8 @@ for i=1,#opt.channelSize do
       cnn:add(nn.SpatialDropout(opt.dropoutProb[depth]))
    end
    cnn:add(nn.SpatialConvolution(
-      inputSize, opt.channelSize[i],
-      opt.kernelSize[i], opt.kernelSize[i],
+      inputSize, opt.channelSize[i], 
+      opt.kernelSize[i], opt.kernelSize[i], 
       opt.kernelStride[i], opt.kernelStride[i],
       opt.padding and math.floor(opt.kernelSize[i]/2) or 0
    ))
@@ -119,8 +132,8 @@ for i=1,#opt.channelSize do
    cnn:add(nn[opt.activation]())
    if opt.poolSize[i] and opt.poolSize[i] > 0 then
       cnn:add(nn.SpatialMaxPooling(
-         opt.poolSize[i], opt.poolSize[i],
-         opt.poolStride[i] or opt.poolSize[i],
+         opt.poolSize[i], opt.poolSize[i], 
+         opt.poolStride[i] or opt.poolSize[i], 
          opt.poolStride[i] or opt.poolSize[i]
       ))
    end
@@ -173,7 +186,7 @@ train = dp.Optimizer{
             ad.decay = 1
          elseif opt.lrDecay == 'schedule' and opt.schedule[report.epoch] then
             opt.learningRate = opt.schedule[report.epoch]
-         elseif opt.lrDecay == 'linear' then
+         elseif opt.lrDecay == 'linear' then 
             opt.learningRate = opt.learningRate + opt.decayFactor
          end
          opt.learningRate = math.max(opt.minLR, opt.learningRate)
@@ -191,14 +204,14 @@ train = dp.Optimizer{
          model:updateParameters(opt.learningRate) -- affects params
       end
       model:maxParamNorm(opt.maxOutNorm) -- affects params
-      model:zeroGradParameters() -- affects gradParams
+      model:zeroGradParameters() -- affects gradParams 
    end,
    feedback = dp.Confusion(),
    sampler = dp.ShuffleSampler{batch_size = opt.batchSize},
    progress = opt.progress
 }
 valid = ds:validSet() and dp.Evaluator{
-   feedback = dp.Confusion(),
+   feedback = dp.Confusion(),  
    sampler = dp.Sampler{batch_size = opt.batchSize}
 }
 test = ds:testSet() and dp.Evaluator{

@@ -52,7 +52,7 @@ local function imagefrompostgres(data, idx)
     return img
 end
 
-local function loadData(data_path, data_size, all_data, test_percentage, valid_percentage, verbose)
+local function loadData(data_path, data_size, equal_representation, test_percentage, valid_percentage, verbose)
 	if verbose then print('Loading Data') end
 
 	local c, h, w = data_size[1], data_size[2], data_size[3]
@@ -61,10 +61,11 @@ local function loadData(data_path, data_size, all_data, test_percentage, valid_p
 	local leuko	 = paths.indexdir(paths.concat(data_path, 'leuko'))			-- 2
 
 	local num_normal, num_leuko
-	if all_data then
-		num_normal, num_leuko = normal:size(), leuko:size()
+	if equal_representation then
+		num_normal = math.min(normal:size(), leuko:size())
+                num_leuko = num_normal
 	else
-		num_normal, num_leuko = 1000, 1000
+		num_normal, num_leuko = normal:size(), leuko:size()
 	end
 
 	local size = num_normal + num_leuko
