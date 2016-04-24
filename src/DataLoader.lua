@@ -138,5 +138,6 @@ end
 -- expose desired functions as public
 DataLoader.loadData = loadData
 DataLoader.imagefrompostgres = imagefrompostgres
+DataLoader.todepth = todepth
 
 return DataLoader
