@@ -3,78 +3,20 @@ require 'torchx'
 require 'image'
 require './DataLoader.lua'
 
-local function pixelset(crop, image_width, image_height)
-    local left, top, width, height = unpack(crop)
-    local set = {}
-
-    for j = top, top + height - 1 do
-        for i = left, left + width - 1 do
-            local pixelnum = (j - 1) * image_width + i
-            set[pixelnum] = true
-        end
-    end
-    return set
-end
-
-local function setsimilarity(s1, s2)
-    local u, i = {}, {} 
-    local s1len, s2len, ulen, ilen = 0, 0, 0, 0
-
-    -- build union set
-    for k,v in pairs(s1) do
-        if v then
-            u[k] = v
-            s1len = s1len + 1
-        end
-    end
-
-    for k,v in pairs(s2) do
-        if v then
-            u[k] = v
-            s2len = s2len + 1
-        end
-    end
-
-    -- build intersection set
-    for k1,v1 in pairs(s1) do
-        local v2 = s2[k1]
-        if v1 and v2 then
-            i[k1] = v1
-        end
-    end
-
-    for k,v in pairs(u) do
-        ulen = ulen + 1
-    end
-
-    for k,v in pairs(i) do
-        ilen = ilen + 1
-    end
-
-    local overlap = ilen / ulen
-    if s1len > s2len then
-        return overlap, 1
-    else
-        return overlap, 2
-    end
-
-end
-
-
 --[[how to use]]-- $> th main.lua [flag] [parameter]
-
 --[[command line arguments]]
 local cmd = torch.CmdLine()
 cmd:text()
-cmd:option('--host',                'facetag-db',   'the host connect to')
-cmd:option('--dbname',              'facetag',      'the db to use')
-cmd:option('--user',                'facetag',      'the user to use')
-cmd:option('--password',            '',             'the password for the user, do not fill this in, use cmd line')
-cmd:option('--validPercentage',     0.15,           'percentage of data to use for validation')
-cmd:option('--testPercentage',      0.15,           'perctage of date to use for testing')
-cmd:option('--dataSize',            '{3,40,40}',    'the shape of the input data')
-cmd:option('--lcn',                 false,          'apply Yann LeCun Local Contrast Normalization')
-cmd:option('--silent',              false,          'dont print anything to stdout')
+cmd:option('--host',                'facetag-db',       'the host connect to')
+cmd:option('--dbname',              'facetag',          'the db to use')
+cmd:option('--user',                'facetag',          'the user to use')
+cmd:option('--password',            '',                 'the password for the user, do not fill this in, use cmd line')
+cmd:option('--savePath',            '/root/deep/test/', 'the where to save artifacts')
+cmd:option('--validPercentage',     0.15,               'percentage of data to use for validation')
+cmd:option('--testPercentage',      0.15,               'perctage of date to use for testing')
+cmd:option('--dataSize',            '{3,40,40}',        'the shape of the input data')
+cmd:option('--lcn',                 false,              'apply Yann LeCun Local Contrast Normalization')
+cmd:option('--silent',              false,              'dont print anything to stdout')
 cmd:text()
 local opt = cmd:parse(arg or {})
 if not opt.silent then
@@ -111,7 +53,7 @@ for i = 1, num_image_rows do
         eye_tags_tmp["top"] = tonumber(eye_tags_tmp["top"])
         eye_tags_tmp["width"] = tonumber(eye_tags_tmp["width"])
         eye_tags_tmp["height"] = tonumber(eye_tags_tmp["height"])
-        
+
         if eye_tags_tmp["label"] == "H" or eye_tags_tmp["label"] == "L" then
             if eye_tags_tmp["width"] > 0 and eye_tags_tmp["height"] > 0 then
                 table.insert(eye_tags, eye_tags_tmp)
@@ -127,7 +69,7 @@ for i = 1, num_image_rows do
         -- add this eye_tag to the set of crops
         table.insert(crops, eye_tags[1])
     elseif #eye_tags >= 2 then
-        
+
         -- there are multiple eye_tag and need to be checked for similarity
         local tags_to_use = {}
         for e1 = 1, #eye_tags do
@@ -144,12 +86,12 @@ for i = 1, num_image_rows do
                 end
             end
         end
-        
+
         -- add the distinct eye_tags to crops
         for k, v in pairs(eye_tags) do
             if tags_to_use[k] then
                 table.insert(crops, v)
-            end 
+            end
         end
     end
     collectgarbage()
@@ -160,19 +102,19 @@ for k, v in pairs(crops) do
     image_cursor = conn:execute("select image.id, image.data from image where image.id=" .. v["image_id"])
     local res = {}
     image_cursor:fetch(res, "a")
-    
+
     local status, img = pcall(function() return DataLoader.imagefrompostgres(res, "data") end)
     print(status)
     if status then
         img = DataLoader.todepth(img, 3)
-    
+
         if v["left"] + v["width"] <= img:size(3) and v["top"] + v["height"] <= img:size(2) then
             img = image.crop(img, v["left"], v["top"], v["left"] + v["width"], v["top"] + v["height"])
             img = image.scale(img, 40, 40)
             if v["label"] == "H" then
-                image.save("/root/deep/test/normal/" .. v["image_id"] .. "-" .. v["id"] .. ".jpg", img)
+                image.save(opt.savePath .. "normal/" .. v["image_id"] .. "-" .. v["id"] .. ".jpg", img)
             elseif v["label"] == "L" then
-                image.save("/root/deep/test/leuko/" .. v["image_id"] .. "-" .. v["id"] .. ".jpg", img)
+                image.save(opt.savePath .. "leuko/" .. v["image_id"] .. "-" .. v["id"] .. ".jpg", img)
             end
         end
     else
@@ -181,19 +123,4 @@ for k, v in pairs(crops) do
     print('done processing a crop')
 end
 
-torch.save('error.txt', error_string, 'ascii')
-
---local image_width, image_height = 1024, 1024
---local crop1, crop2, crop3, crop4 = {50,50,100,100}, {49,49,100,100}, {100,100,200,200}, {150,150,100,100}
---local pixelsets = {}
---table.insert(pixelsets, pixelset(crop1, image_width, image_height))
---table.insert(pixelsets, pixelset(crop2, image_width, image_height))
---table.insert(pixelsets, pixelset(crop3, image_width, image_height))
---table.insert(pixelsets, pixelset(crop4, image_width, image_height))
-
---for i = 1, #pixelsets do
---    for j = i + 1, #pixelsets do
---        local sim, iorj = setsimilarity(pixelsets[i], pixelsets[j])
---        print(i, j, sim, iorj)
---    end
---end
+torch.save('error.log', error_string, 'ascii')
