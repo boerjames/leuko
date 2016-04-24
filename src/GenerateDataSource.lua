@@ -155,25 +155,33 @@ for i = 1, num_image_rows do
     collectgarbage()
 end
 
+local error_string = ''
 for k, v in pairs(crops) do
-    print(k)
-    print(v)
     image_cursor = conn:execute("select image.id, image.data from image where image.id=" .. v["image_id"])
     local res = {}
     image_cursor:fetch(res, "a")
     
-    local img = DataLoader.imagefrompostgres(res, "data")
-    img = DataLoader.todepth(img, 3)
-    print(img:size())
-    img = image.crop(img, v["left"], v["top"], v["left"] + v["width"], v["top"] + v["height"])
-    img = image.scale(img, 40, 40)
-    if v["label"] == "H" then
-        --image.save("healthy-" .. v["image_id"] .. "-" .. v["id"] .. ".jpg", img)
-    elseif v["label"] == "L" then
-        --image.save("leuko-" .. v["image_id"] .. "-" .. v["id"] .. ".jpg", img)
+    local status, img = pcall(function() return DataLoader.imagefrompostgres(res, "data") end)
+    print(status)
+    if status then
+        img = DataLoader.todepth(img, 3)
+    
+        if v["left"] + v["width"] <= img:size(3) and v["top"] + v["height"] <= img:size(2) then
+            img = image.crop(img, v["left"], v["top"], v["left"] + v["width"], v["top"] + v["height"])
+            img = image.scale(img, 40, 40)
+            if v["label"] == "H" then
+                image.save("/root/deep/test/normal/" .. v["image_id"] .. "-" .. v["id"] .. ".jpg", img)
+            elseif v["label"] == "L" then
+                image.save("/root/deep/test/leuko/" .. v["image_id"] .. "-" .. v["id"] .. ".jpg", img)
+            end
+        end
+    else
+        error_string = error_string .. 'image.id ' .. v["image_id"] .. ' is not a jpg' .. '\n'
     end
     print('done processing a crop')
 end
+
+torch.save('error.txt', error_string, 'ascii')
 
 --local image_width, image_height = 1024, 1024
 --local crop1, crop2, crop3, crop4 = {50,50,100,100}, {49,49,100,100}, {100,100,200,200}, {150,150,100,100}
