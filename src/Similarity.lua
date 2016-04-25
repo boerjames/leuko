@@ -1,9 +1,7 @@
 Similarity = {}
 
-local function pixelset(crop, image_width, image_height)
-    local left, top, width, height = unpack(crop)
+local function pixelset(left, top, width, height, image_width, image_height)
     local set = {}
-
     for j = top, top + height - 1 do
         for i = left, left + width - 1 do
             local pixelnum = (j - 1) * image_width + i
@@ -48,13 +46,19 @@ local function setsimilarity(s1, s2)
         ilen = ilen + 1
     end
 
-    local overlap = ilen / ulen
+    local sim = ilen / ulen
     if s1len > s2len then
-        return overlap, 1
+        return sim, 1
     else
-        return overlap, 2
+        return sim, 2
     end
 
+end
+
+local function cropsimilarity(et1, et2, image_width, image_height)
+    local pixelset1 = pixelset(et1["left"], et1["top"], et1["width"], et1["height"], image_width, image_height)
+    local pixelset2 = pixelset(et2["left"], et2["top"], et2["width"], et2["height"], image_width, image_height)
+    return setsimilarity(pixelset1, pixelset2)
 end
 
 -- expose desired functions as public

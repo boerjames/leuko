@@ -45,10 +45,11 @@ local function todepth(img, depth)
    return img
 end
 
-local function imagefrompostgres(data, idx)
-    local str = data[idx]:sub(3, data[idx]:len())
+local function imagefromstring(rawstr)
+    local str = rawstr:sub(3, rawstr:len())
     local bytes = torch.ByteTensor(torch.ByteStorage():string(str:fromhex()))
-    local img = image.decompressJPG(bytes)
+    --local img = image.decompressJPG(bytes)
+    local img = image.decompress(bytes)
     return img
 end
 
@@ -138,7 +139,7 @@ end
 
 -- expose desired functions as public
 DataLoader.loadData = loadData
-DataLoader.imagefrompostgres = imagefrompostgres
+DataLoader.imagefromstring = imagefromstring
 DataLoader.todepth = todepth
 
 return DataLoader
