@@ -44,13 +44,14 @@ for i = 1, 50 do
     image_cursor:fetch(image_res, "a")
     image_res["id"] = tonumber(image_res["id"])
 
-    local eye_cursor = conn:execute("select eye_tag.id, eye_tag.left, eye_tag.top, eye_tag.width, eye_tag.height, eye_tag.label from eye_tag where eye_tag.image_id=" .. image_res["id"])
+    local eye_cursor = conn:execute("select eye_tag.id, eye_tag.image_id, eye_tag.left, eye_tag.top, eye_tag.width, eye_tag.height, eye_tag.label from eye_tag where eye_tag.image_id=" .. image_res["id"])
     local num_eye_tags = eye_cursor:numrows()
 
     for j = 1, num_eye_tags do
         local eye_tags_tmp = {}
         eye_cursor:fetch(eye_tags_tmp, "a")
         eye_tags_tmp["id"] = tonumber(eye_tags_tmp["id"])
+        eye_tags_tmp["image_id"] = tonumber(eye_tags_tmp["image_id"])
         eye_tags_tmp["left"] = tonumber(eye_tags_tmp["left"])
         eye_tags_tmp["top"] = tonumber(eye_tags_tmp["top"])
         eye_tags_tmp["width"] = tonumber(eye_tags_tmp["width"])
