@@ -36,8 +36,9 @@ local conn = env:connect("host=" .. opt.host .. " user=" .. opt.user .. " dbname
 -- loop through the images
 local image_cursor = conn:execute("select image.id from image")
 local num_image_rows = image_cursor:numrows()
+--num_image_rows = 10
 
-for i = 1, 50 do
+for i = 1,  num_image_rows do
     local image_res = {}
     local eye_tags = {}
 
@@ -113,15 +114,17 @@ for i = 1, 50 do
             end -- if #eye_tags == 1 elseif #eye_tags > 1
 
             for k, v in pairs(good_crops) do
+                local crop = {v["left"], v["top"], v["width"], v["height"]}
+                local outer_crop = DataLoader.outercrop(img, crop, 0.2) 
+                for augmentation = 1, 10 do
 
-                local img_crop = image.crop(img, v["left"], v["top"], v["left"] + v["width"], v["top"] + v["height"])
-                img_crop = image.scale(img_crop, 40, 40)
-                if v["label"] == "H" then
-                    image.save(opt.savePath .. "normal/" .. v["image_id"] .. "-" .. v["id"] .. ".jpg", img_crop)
-                elseif v["label"] == "L" then
-                    image.save(opt.savePath .. "leuko/" .. v["image_id"] .. "-" .. v["id"] .. ".jpg", img_crop)
+                    local aug = DataLoader.augment(outer_crop, 40)
+                    if v["label"] == "H" then
+                        image.save(opt.savePath .. "normal/" .. v["image_id"] .. "-" .. v["id"] .. "-" .. augmentation .. ".jpg", aug)
+                    elseif v["label"] == "L" then
+                        image.save(opt.savePath .. "leuko/" .. v["image_id"] .. "-" .. v["id"] .. "-" .. augmentation .. ".jpg", aug)
+                    end
                 end
-
             end
         else
             error_string = error_string .. 'image ' .. image_res["id"] .. ' could not be decoded as a jpg or png\n'

@@ -53,6 +53,34 @@ local function imagefromstring(rawstr)
     return img
 end
 
+local function outercrop(img, crop, delta)
+    local x1, y1, w, h = unpack(crop)
+    local x2, y2 = x1 + w, y1 + h
+    local deltax, deltay = delta * w, delta * h
+
+    x1, x2 = x1 - deltax, x2 + deltax
+    y1, y2 = y1 - deltay, y2 + deltay
+
+    x1, x2 = math.max(x1, 1), math.min(x2, img:size(3))
+    y1, y2 = math.max(y1, 1), math.min(y2, img:size(2))
+
+    return image.crop(img, x1, y1, x2, y2)
+end
+
+local function augment(img, dim)
+    local aug = image.scale(img, dim + 10, dim + 10)
+
+    -- random rotation
+    aug = image.rotate(aug, math.random() * 360)
+
+    -- random crop and scale
+    local x1, y1 = math.ceil(math.random() * 10), math.ceil(math.random() * 10)
+    local x2, y2 = aug:size(3) - math.ceil(math.random() * 10), aug:size(2) - math.ceil(math.random() * 10)
+    aug = image.crop(aug, x1, y1, x2, y2)
+
+    return image.scale(aug, dim, dim)
+end
+
 local function loadData(data_path, data_size, equal_representation, test_percentage, valid_percentage, verbose)
 	if verbose then print('Loading Data') end
 
@@ -141,5 +169,7 @@ end
 DataLoader.loadData = loadData
 DataLoader.imagefromstring = imagefromstring
 DataLoader.todepth = todepth
+DataLoader.outercrop = outercrop
+DataLoader.augment = augment
 
 return DataLoader
