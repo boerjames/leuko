@@ -120,8 +120,8 @@ for i=1,#opt.channelSize do
       cnn:add(nn.SpatialDropout(opt.dropoutProb[depth]))
    end
    cnn:add(nn.SpatialConvolution(
-      inputSize, opt.channelSize[i], 
-      opt.kernelSize[i], opt.kernelSize[i], 
+      inputSize, opt.channelSize[i],
+      opt.kernelSize[i], opt.kernelSize[i],
       opt.kernelStride[i], opt.kernelStride[i],
       opt.padding and math.floor(opt.kernelSize[i]/2) or 0
    ))
@@ -132,8 +132,8 @@ for i=1,#opt.channelSize do
    cnn:add(nn[opt.activation]())
    if opt.poolSize[i] and opt.poolSize[i] > 0 then
       cnn:add(nn.SpatialMaxPooling(
-         opt.poolSize[i], opt.poolSize[i], 
-         opt.poolStride[i] or opt.poolSize[i], 
+         opt.poolSize[i], opt.poolSize[i],
+         opt.poolStride[i] or opt.poolSize[i],
          opt.poolStride[i] or opt.poolSize[i]
       ))
    end
@@ -187,7 +187,7 @@ train = dp.Optimizer{
             ad.decay = 1
          elseif opt.lrDecay == 'schedule' and opt.schedule[report.epoch] then
             opt.learningRate = opt.schedule[report.epoch]
-         elseif opt.lrDecay == 'linear' then 
+         elseif opt.lrDecay == 'linear' then
             opt.learningRate = opt.learningRate + opt.decayFactor
          end
          opt.learningRate = math.max(opt.minLR, opt.learningRate)
@@ -205,14 +205,14 @@ train = dp.Optimizer{
          model:updateParameters(opt.learningRate) -- affects params
       end
       model:maxParamNorm(opt.maxOutNorm) -- affects params
-      model:zeroGradParameters() -- affects gradParams 
+      model:zeroGradParameters() -- affects gradParams
    end,
    feedback = dp.Confusion(),
    sampler = dp.ShuffleSampler{batch_size = opt.batchSize},
    progress = opt.progress
 }
 valid = ds:validSet() and dp.Evaluator{
-   feedback = dp.Confusion(),  
+   feedback = dp.Confusion(),
    sampler = dp.Sampler{batch_size = opt.batchSize}
 }
 test = ds:testSet() and dp.Evaluator{
