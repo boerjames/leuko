@@ -68,15 +68,22 @@ local function outercrop(img, crop, delta)
 end
 
 local function augment(img, dim)
-    local aug = image.scale(img, dim + 10, dim + 10)
-
+    local r = math.random(1, dim / 2)
+    local aug = image.scale(img, dim + r, dim + r)
+    
     -- random rotation
-    aug = image.rotate(aug, math.random() * 360)
+    aug = image.rotate(aug, math.random(0, math.rad(360)))
 
     -- random crop and scale
-    local x1, y1 = math.ceil(math.random() * 10), math.ceil(math.random() * 10)
-    local x2, y2 = aug:size(3) - math.ceil(math.random() * 10), aug:size(2) - math.ceil(math.random() * 10)
+    local x1, y1 = math.ceil(math.random() * r), math.ceil(math.random() * r)
+    local x2, y2 = aug:size(3) - math.ceil(math.random() * r), aug:size(2) - math.ceil(math.random() * r)
+    x1, y1 = math.max(1, x1), math.max(1, y1)
+    x2, y2 = math.min(aug:size(3), x2), math.min(aug:size(2), y2)
     aug = image.crop(aug, x1, y1, x2, y2)
+
+    -- random flip, probably pointless
+    if math.random() > 0.5 then aug = image.vflip(aug) end
+    if math.random() > 0.5 then aug = image.hflip(aug) end
 
     return image.scale(aug, dim, dim)
 end

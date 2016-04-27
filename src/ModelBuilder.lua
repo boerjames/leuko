@@ -13,20 +13,20 @@ cmd:option('--minLR', 0.00001, 'minimum learning rate')
 cmd:option('--saturateEpoch', 300, 'epoch at which linear decayed LR will reach minLR')
 cmd:option('--schedule', '{}', 'learning rate schedule')
 cmd:option('--maxWait', 4, 'maximum number of epochs to wait for a new minima to be found. After that, the learning rate is decayed by decayFactor.')
-cmd:option('--decayFactor', 0.001, 'factor by which learning rate is decayed for adaptive decay.')
+cmd:option('--decayFactor', 0.01, 'factor by which learning rate is decayed for adaptive decay.')
 cmd:option('--maxOutNorm', 1, 'max norm each layers output neuron weights')
-cmd:option('--momentum', 0, 'momentum')
-cmd:option('--channelSize', '{8,16,24,32}', 'Number of output channels for each convolution layer.')
-cmd:option('--kernelSize', '{3,3,3,3}', 'kernel size of each convolution layer. Height = Width')
+cmd:option('--momentum', 0.1, 'momentum')
+cmd:option('--channelSize', '{16,24,32,40}', 'Number of output channels for each convolution layer.')
+cmd:option('--kernelSize', '{5,5,5,5}', 'kernel size of each convolution layer. Height = Width')
 cmd:option('--kernelStride', '{1,1,1,1}', 'kernel stride of each convolution layer. Height = Width')
 cmd:option('--poolSize', '{2,2,2,2}', 'size of the max pooling of each convolution layer. Height = Width')
 cmd:option('--poolStride', '{2,2,2,2}', 'stride of the max pooling of each convolution layer. Height = Width')
 cmd:option('--padding', true, 'add math.floor(kernelSize/2) padding to the input of each convolution') 
-cmd:option('--batchSize', 32, 'number of examples per batch')
+cmd:option('--batchSize', 256, 'number of examples per batch')
 cmd:option('--cuda', true, 'use CUDA')
 cmd:option('--useDevice', 1, 'sets the device (GPU) to use')
 cmd:option('--maxEpoch', 200, 'maximum number of epochs to run')
-cmd:option('--maxTries', 100, 'maximum number of epochs to try to find a better local minima for early-stopping')
+cmd:option('--maxTries', 30, 'maximum number of epochs to try to find a better local minima for early-stopping')
 cmd:option('--dataset', 'Custom', 'which dataset to use : Mnist | NotMnist | Cifar10 | Cifar100 | Svhn | ImageSource | Custom')
 cmd:option('--trainPath', '.', 'Where to look for training images')
 cmd:option('--validPath', '.', 'Where to look for validation images')
@@ -38,10 +38,10 @@ cmd:option('--standardize', false, 'apply Standardize preprocessing')
 cmd:option('--zca', false, 'apply Zero-Component Analysis whitening')
 cmd:option('--lecunlcn', false, 'apply Yann LeCun Local Contrast Normalization (recommended)')
 cmd:option('--activation', 'ReLU', 'transfer function like ReLU, Tanh, Sigmoid')
-cmd:option('--hiddenSize', '{50}', 'size of the dense hidden layers after the convolution')
+cmd:option('--hiddenSize', '{200,100}', 'size of the dense hidden layers after the convolution')
 cmd:option('--batchNorm', false, 'use batch normalization. dropout is mostly redundant with this')
-cmd:option('--dropout', false, 'use dropout')
-cmd:option('--dropoutProb', '{0.2,0.2,0.2,0.2,0.5}', 'dropout probabilities')
+cmd:option('--dropout', true, 'use dropout')
+cmd:option('--dropoutProb', '{0.1,0.1,0.1,0.1,0.5,0.5}', 'dropout probabilities')
 cmd:option('--accUpdate', false, 'accumulate gradients inplace')
 cmd:option('--progress', true, 'print progress bar')
 cmd:option('--silent', false, 'dont print anything to stdout')
@@ -98,7 +98,7 @@ elseif opt.dataset == 'FaceDetection' then
 elseif opt.dataset == 'ImageSource' then
    ds = dp.ImageSource{load_size = opt.loadSize, sample_size = opt.sampleSize, train_path = opt.trainPath, valid_path = opt.validPath, meta_path = opt.metaPath, verbose = not opt.silent}
 elseif opt.dataset == 'Custom' then
-   ds = torch.load('old-ds.t7')
+   ds = torch.load('aug10-ds.t7')
 else
     error("Unknown Dataset")
 end
@@ -148,7 +148,8 @@ dp.vprint(not opt.silent, "input to dense layers has: "..inputSize.." neurons")
 cnn:insert(nn.Convert(ds:ioShapes(), 'bchw'), 1)
 
 -- dense hidden layers
-cnn:add(nn.Collapse(3))
+--cnn:add(nn.Collapse(3))
+cnn:add(nn.View(inputSize))
 for i,hiddenSize in ipairs(opt.hiddenSize) do
    if opt.dropout and (opt.dropoutProb[depth] or 0) > 0 then
       cnn:add(nn.Dropout(opt.dropoutProb[depth]))
@@ -242,6 +243,9 @@ xp = dp.Experiment{
 if opt.cuda then
    require 'cutorch'
    require 'cunn'
+   require 'cudnn'
+   cudnn.benchmark = true
+   cudnn.fastest = true
    cutorch.setDevice(opt.useDevice)
    xp:cuda()
 end
@@ -253,3 +257,15 @@ end
 xp:verbose(not opt.silent)
 
 xp:run(ds)
+torch.save('xp.t7',xp)
+
+require 'cutorch'
+require 'cudnn'
+model = xp:model()
+cudnn.convert(model, nn)
+model:float()
+model:clearState()
+model:evaluate()
+smodel = nn.Serial(model, 'torch.FloatTensor')
+smodel:lightSerial()
+torch.save('smodel.t7',smodel)
