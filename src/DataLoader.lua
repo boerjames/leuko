@@ -68,9 +68,9 @@ local function outercrop(img, crop, delta)
 end
 
 local function augment(img, dim)
-    local r = math.random(1, dim / 2)
+    local r = math.random(1, dim / 2.5)
     local aug = image.scale(img, dim + r, dim + r)
-    
+
     -- random rotation
     aug = image.rotate(aug, math.random(0, math.rad(360)))
 

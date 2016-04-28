@@ -8,16 +8,17 @@ require './Similarity.lua'
 --[[command line arguments]]
 local cmd = torch.CmdLine()
 cmd:text()
-cmd:option('--host',                'facetag-db',       'the host connect to')
-cmd:option('--dbname',              'facetag',          'the db to use')
-cmd:option('--user',                'facetag',          'the user to use')
-cmd:option('--password',            '',                 'the password for the user, do not fill this in, use cmd line')
-cmd:option('--savePath',            '/root/deep/test/', 'the where to save artifacts')
-cmd:option('--validPercentage',     0.15,               'percentage of data to use for validation')
-cmd:option('--testPercentage',      0.15,               'perctage of date to use for testing')
-cmd:option('--dataSize',            '{3,40,40}',        'the shape of the input data')
-cmd:option('--lcn',                 false,              'apply Yann LeCun Local Contrast Normalization')
-cmd:option('--silent',              false,              'dont print anything to stdout')
+cmd:option('--host',                'facetag-db',           'the host connect to')
+cmd:option('--dbname',              'facetag',              'the db to use')
+cmd:option('--user',                'facetag',              'the user to use')
+cmd:option('--password',            '',                     'the password for the user, do not fill this in, use cmd line')
+cmd:option('--savePath',            '/root/shared/data/',   'the where to save artifacts')
+cmd:option('--validPercentage',     0.15,                   'percentage of data to use for validation')
+cmd:option('--testPercentage',      0.15,                   'perctage of date to use for testing')
+cmd:option('--numVariants',         10,                     'the number of variants to create for an eye tag')
+cmd:option('--dataSize',            '{3,40,40}',            'the shape of the input data')
+cmd:option('--lcn',                 false,                  'apply Yann LeCun Local Contrast Normalization')
+cmd:option('--silent',              false,                  'dont print anything to stdout')
 cmd:text()
 local opt = cmd:parse(arg or {})
 if not opt.silent then
@@ -65,7 +66,7 @@ for i = 1,  num_image_rows do
         end
     end
 
-    print('EXAMINING THE', #eye_tags, 'EYE TAGS FROM IMAGE', image_res["id"])
+    --print('EXAMINING THE', #eye_tags, 'EYE TAGS FROM IMAGE', image_res["id"])
     if #eye_tags > 0 then
 
         local image_data_cursor = conn:execute("select image.data from image where image.id=" .. image_res["id"])
@@ -115,14 +116,14 @@ for i = 1,  num_image_rows do
 
             for k, v in pairs(good_crops) do
                 local crop = {v["left"], v["top"], v["width"], v["height"]}
-                local outer_crop = DataLoader.outercrop(img, crop, 0.2) 
-                for augmentation = 1, 10 do
+                local outer_crop = DataLoader.outercrop(img, crop, 0.2)
+                for variant = 1, numVariants do
 
-                    local aug = DataLoader.augment(outer_crop, 40)
+                    local var = DataLoader.augment(outer_crop, 40)
                     if v["label"] == "H" then
-                        image.save(opt.savePath .. "normal/" .. v["image_id"] .. "-" .. v["id"] .. "-" .. augmentation .. ".jpg", aug)
+                        image.save(opt.savePath .. "normal/" .. v["image_id"] .. "-" .. v["id"] .. "-" .. variant .. ".jpg", var)
                     elseif v["label"] == "L" then
-                        image.save(opt.savePath .. "leuko/" .. v["image_id"] .. "-" .. v["id"] .. "-" .. augmentation .. ".jpg", aug)
+                        image.save(opt.savePath .. "leuko/" .. v["image_id"] .. "-" .. v["id"] .. "-" .. variant .. ".jpg", var)
                     end
                 end
             end
@@ -131,6 +132,7 @@ for i = 1,  num_image_rows do
         end -- if status
     end -- if #eye_tags > 0
     collectgarbage()
+    if not silent then xlua.progress(i, num_image_rows) end
 end -- loop over images
 
 torch.save('error.log', error_string, 'ascii')
