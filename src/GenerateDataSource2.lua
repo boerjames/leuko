@@ -39,7 +39,7 @@ local image_cursor = conn:execute("select image.id from image")
 local num_image_rows = image_cursor:numrows()
 --num_image_rows = 10
 
-if not silent then print('Progress generating eye crops from ' .. opt.host ':') end
+if not silent then print('Progress generating eye crops from ' .. opt.host .. ':') end
 for i = 1,  num_image_rows do
     local image_res = {}
     local eye_tags = {}
