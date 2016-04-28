@@ -78,8 +78,8 @@ ENV HYPER_PG_CONN "dbname=hypero user=hypero host=hypero-db"
 RUN cd ~ && \ 
     mkdir examples && \
     cd examples && \ 
-    wget https://raw.githubusercontent.com/Element-Research/hypero/master/examples/neuralnetwork.lua hypero-example.lua && \
-    wget https://raw.githubusercontent.com/nicholas-leonard/dp/master/examples/convolutionneuralnetwork.lua cnn-dp-example.lua
+    wget https://raw.githubusercontent.com/Element-Research/hypero/master/examples/neuralnetwork.lua && \
+    wget https://raw.githubusercontent.com/nicholas-leonard/dp/master/examples/convolutionneuralnetwork.lua
 
 # HYPERO
 RUN cd ~ && \
