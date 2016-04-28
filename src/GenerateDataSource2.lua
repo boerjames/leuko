@@ -126,9 +126,9 @@ for i = 1,  num_image_rows do
 
                     local var = DataLoader.augment(outer_crop, 40)
                     if v["label"] == "H" then
-                        image.save(opt.savePath .. "normal/" .. v["image_id"] .. "-" .. v["id"] .. "-" .. variant .. ".jpg", var)
+                        image.save(paths.concat(opt.savePath, 'normal') .. v["image_id"] .. "-" .. v["id"] .. "-" .. variant .. ".jpg", var)
                     elseif v["label"] == "L" then
-                        image.save(opt.savePath .. "leuko/" .. v["image_id"] .. "-" .. v["id"] .. "-" .. variant .. ".jpg", var)
+                        image.save(paths.concat(opt.savePath, 'leuko') .. v["image_id"] .. "-" .. v["id"] .. "-" .. variant .. ".jpg", var)
                     end
                 end
             end
