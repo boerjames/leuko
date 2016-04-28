@@ -9,7 +9,7 @@ require './Similarity.lua'
 --[[command line arguments]]
 local cmd = torch.CmdLine()
 cmd:text()
-cmd:option('--savePath',            '/root/shared/data/facetag',   'the where to save artifacts')
+cmd:option('--savePath',            '/root/shared/data',   'the where to save artifacts')
 cmd:option('--host',                'facetag-db',           'the host connect to')
 cmd:option('--dbname',              'facetag',              'the db to use')
 cmd:option('--user',                'facetag',              'the user to use')
