@@ -1,4 +1,5 @@
 require 'dp'
+require 'xlua'
 require 'torchx'
 require 'image'
 require './DataLoader.lua'
@@ -26,6 +27,9 @@ if not opt.silent then
 end
 opt.dataSize = table.fromString(opt.dataSize)
 collectgarbage()
+
+dp.mkdir(paths.concat(opt.savePath, 'normal'))
+dp.mkdir(paths.concat(opt.savePath, 'leuko'))
 
 local error_string = ''
 
