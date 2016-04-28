@@ -39,6 +39,7 @@ local image_cursor = conn:execute("select image.id from image")
 local num_image_rows = image_cursor:numrows()
 --num_image_rows = 10
 
+if not silent print('Progress generating eye crops from ' .. opt.host ':')
 for i = 1,  num_image_rows do
     local image_res = {}
     local eye_tags = {}
@@ -117,7 +118,7 @@ for i = 1,  num_image_rows do
             for k, v in pairs(good_crops) do
                 local crop = {v["left"], v["top"], v["width"], v["height"]}
                 local outer_crop = DataLoader.outercrop(img, crop, 0.2)
-                for variant = 1, numVariants do
+                for variant = 1, opt.numVariants do
 
                     local var = DataLoader.augment(outer_crop, 40)
                     if v["label"] == "H" then
