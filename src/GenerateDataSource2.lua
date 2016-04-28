@@ -39,11 +39,12 @@ local conn = env:connect("host=" .. opt.host .. " user=" .. opt.user .. " dbname
 
 --[[generate the datasource]]--
 -- loop through the images
+local num_eye_tags_total, eye_tags_counter = conn:execute("select eye_tag.id from eye_tag"):numrows(), 0
 local image_cursor = conn:execute("select image.id from image")
 local num_image_rows = image_cursor:numrows()
 --num_image_rows = 10
 
-if not silent then print('Progress generating eye crops from ' .. opt.host .. ':') end
+if not silent then print('Generating eye crops from ' .. opt.host) end
 for i = 1,  num_image_rows do
     local image_res = {}
     local eye_tags = {}
@@ -68,6 +69,10 @@ for i = 1,  num_image_rows do
             if eye_tags_tmp["width"] > 0 and eye_tags_tmp["height"] > 0 then
                 table.insert(eye_tags, eye_tags_tmp)
             end
+        end
+        if not silent then
+            eye_tags_counter = eye_tags_counter + 1
+            xlua.progress(eye_tags_counter, num_eye_tags_total)
         end
     end
 
@@ -137,7 +142,6 @@ for i = 1,  num_image_rows do
         end -- if status
     end -- if #eye_tags > 0
     collectgarbage()
-    if not silent then xlua.progress(i, num_image_rows) end
 end -- loop over images
 
 torch.save('error.log', error_string, 'ascii')
