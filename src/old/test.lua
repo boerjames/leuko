@@ -1,1 +1,0 @@
---th hypero/scripts/export.lua --batteryName 'batt1' --versionDesc 'v1' --metaNames 'hostname' --resultNames 'trainAcc,validAcc,testAcc' --orderBy 'testAcc' --desc

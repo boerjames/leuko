@@ -2,7 +2,7 @@
 require 'torch'
 require 'nn'
 
-function RyNet(ds)
+function RyaNet(ds)
     -- sequential network
     local net = nn.Sequential()
 
@@ -39,4 +39,3 @@ function RyNet(ds)
 
     return net
 end
-
