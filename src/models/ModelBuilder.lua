@@ -8,7 +8,7 @@ cmd:text('Options:')
 
 --[[training parameters]]
 cmd:option('--learningRate',        0.1,        'learning rate at t=0')
-cmd:option('--lrDecay',             'linear',   'type of learning rate decay : adaptive | linear | schedule | none')
+cmd:option('--lrDecay',             'linear',   'type of learning rate decay: adaptive | linear | schedule | none')
 cmd:option('--minLR',               0.00001,    'minimum learning rate')
 cmd:option('--saturateEpoch',       300,        'epoch at which linear decayed LR will reach minLR')
 cmd:option('--schedule',            '{}',       'learning rate schedule')
@@ -23,6 +23,7 @@ cmd:option('--maxEpoch',            200,        'maximum number of epochs to run
 cmd:option('--maxTries',            30,         'maximum number of epochs to try to find a better local minima for early-stopping')
 
 --[[network paramters]]
+cmd:option('--network',             'RyaNet',                       'network to use: Custom | RyaNet')
 cmd:option('--channelSize',         '{16,24,32,40}',                'number of output channels for each convolution layer')
 cmd:option('--kernelSize',          '{5,5,5,5}',                    'kernel size of each convolution layer (h = w)')
 cmd:option('--kernelStride',        '{1,1,1,1}',                    'kernel stride of each convolution layer (h = w)')
@@ -79,66 +80,72 @@ function dropout(depth)
 end
 
 --[[Model]]--
-cnn = nn.Sequential()
+local cnn
 
--- convolutional and pooling layers
-depth = 1
-inputSize = ds:imageSize('c')
-for i=1,#opt.channelSize do
-   if opt.dropout and (opt.dropoutProb[depth] or 0) > 0 then
-      -- dropout can be useful for regularization
-      cnn:add(nn.SpatialDropout(opt.dropoutProb[depth]))
-   end
-   cnn:add(nn.SpatialConvolution(
-      inputSize, opt.channelSize[i],
-      opt.kernelSize[i], opt.kernelSize[i],
-      opt.kernelStride[i], opt.kernelStride[i],
-      opt.padding and math.floor(opt.kernelSize[i]/2) or 0
-   ))
-   if opt.batchNorm then
-      -- batch normalization can be awesome
-      cnn:add(nn.SpatialBatchNormalization(opt.channelSize[i]))
-   end
-   cnn:add(nn[opt.activation]())
-   if opt.poolSize[i] and opt.poolSize[i] > 0 then
-      cnn:add(nn.SpatialMaxPooling(
-         opt.poolSize[i], opt.poolSize[i],
-         opt.poolStride[i] or opt.poolSize[i],
-         opt.poolStride[i] or opt.poolSize[i]
-      ))
-   end
-   inputSize = opt.channelSize[i]
-   depth = depth + 1
+if opt.network == 'Custom' then
+    cnn = nn.Sequential()
+
+    -- convolutional and pooling layers
+    depth = 1
+    inputSize = ds:imageSize('c')
+    for i=1,#opt.channelSize do
+       if opt.dropout and (opt.dropoutProb[depth] or 0) > 0 then
+          -- dropout can be useful for regularization
+          cnn:add(nn.SpatialDropout(opt.dropoutProb[depth]))
+       end
+       cnn:add(nn.SpatialConvolution(
+          inputSize, opt.channelSize[i],
+          opt.kernelSize[i], opt.kernelSize[i],
+          opt.kernelStride[i], opt.kernelStride[i],
+          opt.padding and math.floor(opt.kernelSize[i]/2) or 0
+       ))
+       if opt.batchNorm then
+          -- batch normalization can be awesome
+          cnn:add(nn.SpatialBatchNormalization(opt.channelSize[i]))
+       end
+       cnn:add(nn[opt.activation]())
+       if opt.poolSize[i] and opt.poolSize[i] > 0 then
+          cnn:add(nn.SpatialMaxPooling(
+             opt.poolSize[i], opt.poolSize[i],
+             opt.poolStride[i] or opt.poolSize[i],
+             opt.poolStride[i] or opt.poolSize[i]
+          ))
+       end
+       inputSize = opt.channelSize[i]
+       depth = depth + 1
+    end
+    -- get output size of convolutional layers
+    outsize = cnn:outside{1,ds:imageSize('c'),ds:imageSize('h'),ds:imageSize('w')}
+    inputSize = outsize[2]*outsize[3]*outsize[4]
+    dp.vprint(not opt.silent, "input to dense layers has: "..inputSize.." neurons")
+
+    cnn:insert(nn.Convert(ds:ioShapes(), 'bchw'), 1)
+
+    -- dense hidden layers
+    --cnn:add(nn.Collapse(3))
+    cnn:add(nn.View(inputSize))
+    for i,hiddenSize in ipairs(opt.hiddenSize) do
+       if opt.dropout and (opt.dropoutProb[depth] or 0) > 0 then
+          cnn:add(nn.Dropout(opt.dropoutProb[depth]))
+       end
+       cnn:add(nn.Linear(inputSize, hiddenSize))
+       if opt.batchNorm then
+          cnn:add(nn.BatchNormalization(hiddenSize))
+       end
+       cnn:add(nn[opt.activation]())
+       inputSize = hiddenSize
+       depth = depth + 1
+    end
+
+    -- output layer
+    if opt.dropout and (opt.dropoutProb[depth] or 0) > 0 then
+       cnn:add(nn.Dropout(opt.dropoutProb[depth]))
+    end
+    cnn:add(nn.Linear(inputSize, #(ds:classes())))
+    cnn:add(nn.SoftMax())
+elseif opt.network == 'RyaNet' then
+    cnn = require('./RyaNet.lua')(ds)
 end
--- get output size of convolutional layers
-outsize = cnn:outside{1,ds:imageSize('c'),ds:imageSize('h'),ds:imageSize('w')}
-inputSize = outsize[2]*outsize[3]*outsize[4]
-dp.vprint(not opt.silent, "input to dense layers has: "..inputSize.." neurons")
-
-cnn:insert(nn.Convert(ds:ioShapes(), 'bchw'), 1)
-
--- dense hidden layers
---cnn:add(nn.Collapse(3))
-cnn:add(nn.View(inputSize))
-for i,hiddenSize in ipairs(opt.hiddenSize) do
-   if opt.dropout and (opt.dropoutProb[depth] or 0) > 0 then
-      cnn:add(nn.Dropout(opt.dropoutProb[depth]))
-   end
-   cnn:add(nn.Linear(inputSize, hiddenSize))
-   if opt.batchNorm then
-      cnn:add(nn.BatchNormalization(hiddenSize))
-   end
-   cnn:add(nn[opt.activation]())
-   inputSize = hiddenSize
-   depth = depth + 1
-end
-
--- output layer
-if opt.dropout and (opt.dropoutProb[depth] or 0) > 0 then
-   cnn:add(nn.Dropout(opt.dropoutProb[depth]))
-end
-cnn:add(nn.Linear(inputSize, #(ds:classes())))
-cnn:add(nn.SoftMax())
 
 --[[Propagators]]--
 if opt.lrDecay == 'adaptive' then

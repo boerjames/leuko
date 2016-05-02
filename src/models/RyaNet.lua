@@ -32,10 +32,10 @@ function RyaNet(ds)
 
     -- fully connected layer, 5 input channels, 3 output channels (classes)
     net:add(nn.Linear(50, 5))
-    net:add(nn.Linear(5, 3))
+    net:add(nn.Linear(5, 2))
 
     -- converts the output to a log-probability, useful for classification
-    net:add(nn.LogSoftMax())
+    net:add(nn.SoftMax())
 
     return net
 end
