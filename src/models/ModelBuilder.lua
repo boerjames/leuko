@@ -246,3 +246,4 @@ model:evaluate()
 smodel = nn.Serial(model, 'torch.FloatTensor')
 smodel:lightSerial()
 torch.save('smodel.t7',smodel)
+]]--
