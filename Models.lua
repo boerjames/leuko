@@ -2,7 +2,7 @@
 require 'torch'
 require 'nn'
 
-function RyaNet(ds)
+local function RyaNet(ds)
     -- sequential network
     local net = nn.Sequential()
 
@@ -35,7 +35,21 @@ function RyaNet(ds)
     net:add(nn.Linear(5, 2))
 
     -- converts the output to a log-probability, useful for classification
-    net:add(nn.SoftMax())
+    net:add(nn.LogSoftMax())
 
     return net
 end
+
+local function pick_model(arg, ds)
+    local model = nil
+    if arg == 'RyaNet' then
+        model = RyaNet
+    else
+        assert(false)
+    end
+
+    return model(ds)
+end
+
+
+return pick_model

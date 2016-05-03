@@ -2,8 +2,109 @@ require 'dp'
 require 'xlua'
 require 'torchx'
 require 'image'
-require './DataLoader.lua'
-require './Similarity.lua'
+
+local function pixelset(left, top, width, height, image_width, image_height)
+    local set = {}
+    for j = top, top + height - 1 do
+        for i = left, left + width - 1 do
+            local pixelnum = (j - 1) * image_width + i
+            set[pixelnum] = true
+        end
+    end
+    return set
+end
+
+local function setsimilarity(s1, s2)
+    local u, i = {}, {}
+    local s1len, s2len, ulen, ilen = 0, 0, 0, 0
+
+    -- build union set
+    for k,v in pairs(s1) do
+        if v then
+            u[k] = v
+            s1len = s1len + 1
+        end
+    end
+
+    for k,v in pairs(s2) do
+        if v then
+            u[k] = v
+            s2len = s2len + 1
+        end
+    end
+
+    -- build intersection set
+    for k1,v1 in pairs(s1) do
+        local v2 = s2[k1]
+        if v1 and v2 then
+            i[k1] = v1
+        end
+    end
+
+    for k,v in pairs(u) do
+        ulen = ulen + 1
+    end
+
+    for k,v in pairs(i) do
+        ilen = ilen + 1
+    end
+
+    local sim = ilen / ulen
+    if s1len > s2len then
+        return sim, 1
+    else
+        return sim, 2
+    end
+
+end
+
+local function cropsimilarity(et1, et2, image_width, image_height)
+    local pixelset1 = pixelset(et1["left"], et1["top"], et1["width"], et1["height"], image_width, image_height)
+    local pixelset2 = pixelset(et2["left"], et2["top"], et2["width"], et2["height"], image_width, image_height)
+    return setsimilarity(pixelset1, pixelset2)
+end
+
+local function imagefromstring(rawstr)
+    local str = rawstr:sub(3, rawstr:len())
+    local bytes = torch.ByteTensor(torch.ByteStorage():string(str:fromhex()))
+    local img = image.decompress(bytes)
+    return img
+end
+
+local function outercrop(img, crop, delta)
+    local x1, y1, w, h = unpack(crop)
+    local x2, y2 = x1 + w, y1 + h
+    local deltax, deltay = delta * w, delta * h
+
+    x1, x2 = x1 - deltax, x2 + deltax
+    y1, y2 = y1 - deltay, y2 + deltay
+
+    x1, x2 = math.max(x1, 1), math.min(x2, img:size(3))
+    y1, y2 = math.max(y1, 1), math.min(y2, img:size(2))
+
+    return image.crop(img, x1, y1, x2, y2)
+end
+
+local function augment(img, dim)
+    local r = math.random(1, dim / 3)
+    local aug = image.scale(img, dim + r, dim + r)
+
+    -- random rotation
+    aug = image.rotate(aug, math.random(0, math.rad(360)))
+
+    -- random crop and scale
+    local x1, y1 = math.ceil(math.random() * r), math.ceil(math.random() * r)
+    local x2, y2 = aug:size(3) - math.ceil(math.random() * r), aug:size(2) - math.ceil(math.random() * r)
+    x1, y1 = math.max(1, x1), math.max(1, y1)
+    x2, y2 = math.min(aug:size(3), x2), math.min(aug:size(2), y2)
+    aug = image.crop(aug, x1, y1, x2, y2)
+
+    -- random flip, probably pointless
+    if math.random() > 0.5 then aug = image.vflip(aug) end
+    if math.random() > 0.5 then aug = image.hflip(aug) end
+
+    return image.scale(aug, dim, dim)
+end
 
 --[[how to use]]-- $> th main.lua [flag] [parameter]
 --[[command line arguments]]
@@ -84,7 +185,7 @@ for i = 1,  num_image_rows do
         local image_data_cursor = conn:execute("select image.data from image where image.id=" .. image_res["id"])
         local image_data_res = {}
         image_data_cursor:fetch(image_data_res, "a")
-        local status, img = pcall(function() return DataLoader.imagefromstring(image_data_res["data"]) end)
+        local status, img = pcall(function() return imagefromstring(image_data_res["data"]) end)
 
         if status then
             local good_crops = {}
@@ -105,7 +206,7 @@ for i = 1,  num_image_rows do
                 for e1 = 1, #eye_tags do
                     for e2 = e1 + 1, #eye_tags do
                         local et1, et2 = eye_tags[e1], eye_tags[e2]
-                        local sim, e = Similarity.cropsimilarity(et1, et2, image_width, image_height)
+                        local sim, e = cropsimilarity(et1, et2, image_width, image_height)
                         if sim < 0.5 then
                             tags_to_use[e1] = true
                             tags_to_use[e2] = true
@@ -128,10 +229,10 @@ for i = 1,  num_image_rows do
 
             for k, v in pairs(good_crops) do
                 local crop = {v["left"], v["top"], v["width"], v["height"]}
-                local outer_crop = DataLoader.outercrop(img, crop, 0.2)
+                local outer_crop = outercrop(img, crop, 0.2)
                 for variant = 1, opt.numVariants do
 
-                    local var = DataLoader.augment(outer_crop, 40)
+                    local var = augment(outer_crop, 40)
                     if v["label"] == "H" then
                         image.save(normalPath .. "/" .. v["image_id"] .. "-" .. v["id"] .. "-" .. variant .. ".jpg", var)
                     elseif v["label"] == "L" then
