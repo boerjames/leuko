@@ -82,6 +82,7 @@ local cnn
 
 if opt.network == 'Custom' then
     cnn = nn.Sequential()
+    cnn:add(nn.Convert(ds:ioShapes(), 'bchw'))
 
     -- convolution and pooling layers
     inputSize = ds:imageSize('c')
@@ -158,9 +159,6 @@ if opt.network == 'Custom' then
     -- get output size of convolutional layers
     outsize = cnn:outside{1,ds:imageSize('c'),ds:imageSize('h'),ds:imageSize('w')}
     inputSize = outsize[2]*outsize[3]*outsize[4]
-    dp.vprint(not opt.silent, "input to dense layers has: "..inputSize.." neurons")
-
-    cnn:insert(nn.Convert(ds:ioShapes(), 'bchw'), 1)
 
     -- dense hidden layers
     --cnn:add(nn.Collapse(3))

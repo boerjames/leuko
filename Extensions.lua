@@ -11,3 +11,9 @@ function string.tohex(str)
         return string.format('%02X', string.byte(c))
     end))
 end
+
+function table.length(t)
+    local count = 0
+    for _ in pairs(t) do count = count + 1 end
+    return count
+end
