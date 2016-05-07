@@ -95,27 +95,27 @@ function buildExperiment(opt, ds)
 
     for i=1,#conv do
         for j=1,opt.convolutionStacks do
-            if opt.dropout then cnn:add(nn.SpatialDropout(opt.convDropoutProb)) end
-            cnn:add(nn.SpatialConvolution(
+            if opt.dropout then model:add(nn.SpatialDropout(opt.convDropoutProb)) end
+            model:add(nn.SpatialConvolution(
                inputSize, conv[i],
                opt.convolutionKernelSize, opt.convolutionKernelSize,
                1, 1,
-               math.floor(opt.convolutionKernelSize[i]/2)
+               math.floor(opt.convolutionKernelSize/2)
             ))
             inputSize = conv[i]
-            cnn:add(nn[opt.activation]())
+            model:add(nn[opt.activation]())
         end
 
        if opt.poolMethod == 'SpatialConvolution' then
-           cnn:add(nn.SpatialConvolution(
+           model:add(nn.SpatialConvolution(
                conv[i], conv[i],
                opt.poolSize, opt.poolSize,
                2, 2,
                math.floor(opt.poolSize/2)
            ))
-           cnn:add(nn[opt.activation]())
+           model:add(nn[opt.activation]())
        else
-           cnn:add(nn[opt.poolMethod](
+           model:add(nn[opt.poolMethod](
                opt.poolSize, opt.poolSize,
                2, 2
            ))
