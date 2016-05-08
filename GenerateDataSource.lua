@@ -155,7 +155,7 @@ for i = 1,  num_image_rows do
     image_cursor:fetch(image_res, "a")
     image_res["id"] = tonumber(image_res["id"])
 
-    local eye_cursor = conn:execute("select eye_tag.id, eye_tag.image_id, eye_tag.left, eye_tag.top, eye_tag.width, eye_tag.height, eye_tag.label from eye_tag where eye_tag.image_id=" .. image_res["id"])
+    local eye_cursor = conn:execute("select eye_tag.id, eye_tag.review_result, eye_tag.image_id, eye_tag.left, eye_tag.top, eye_tag.width, eye_tag.height, eye_tag.label from eye_tag where eye_tag.image_id=" .. image_res["id"])
     local num_eye_tags = eye_cursor:numrows()
 
     for j = 1, num_eye_tags do
@@ -168,7 +168,7 @@ for i = 1,  num_image_rows do
         eye_tags_tmp["width"] = tonumber(eye_tags_tmp["width"])
         eye_tags_tmp["height"] = tonumber(eye_tags_tmp["height"])
 
-        if eye_tags_tmp["label"] == "H" or eye_tags_tmp["label"] == "L" then
+        if eye_tags_tmp["review_result"] == "A" and (eye_tags_tmp["label"] == "H" or eye_tags_tmp["label"] == "L") then
             if eye_tags_tmp["width"] > 0 and eye_tags_tmp["height"] > 0 then
                 table.insert(eye_tags, eye_tags_tmp)
             end

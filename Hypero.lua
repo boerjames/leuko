@@ -12,13 +12,13 @@ cmd:text('Options:')
 
 -- hypero database parameters
 cmd:option('--batteryName',             'leuko',                'name of battery of experiments to be run')
-cmd:option('--versionDesc',             'testing',              'neural network version')
+cmd:option('--versionDesc',             'testing1',              'neural network version')
 
 -- training options
-cmd:option('--maxHex',                  1000,                     'maximum number of hyper-experiments to train (from this script)')
+cmd:option('--maxHex',                  300,                     'maximum number of hyper-experiments to train (from this script)')
 cmd:option('--cuda',                    true,                   'use CUDA')
 cmd:option('--useDevice',               0,                      'sets the device (GPU) to use, please set using cmd arg')
-cmd:option('--maxEpoch',                2,                    'maximum number of epochs to run')
+cmd:option('--maxEpoch',		150,                    'maximum number of epochs to run')
 cmd:option('--maxTries',                15,                     'maximum number of epochs to try to find a better local minima for early-stopping')
 cmd:option('--startLR',                 '{0.001, 1}',           'learning rate at t=0 (log-uniform {log(min), log(max)})')
 cmd:option('--minLR',                   '{0.001, 1}',           'minimum LR = minLR*startLR (log-uniform {log(min), log(max)})')
@@ -33,7 +33,7 @@ cmd:option('--convolutionKernelSize',           '{3, 5}',               'possibl
 cmd:option('--startConvolutionFilters',         '{8, 12}',              'starting number of convolution filters (random int)')
 cmd:option('--finalConvolutionFilters',         '{8, 32}',              'final number of convolution filters (random int)')
 cmd:option('--numConvolutionLayers',            '{2, 4}',               'number of convolution layers (random int)')
-cmd:option('--convDropoutProb',                 '{0.1, 0.3}',           'probabilities of convolution dropout layer (uniform)')
+cmd:option('--convDropoutProb',                 '{0.1, 0.2}',           'probabilities of convolution dropout layer (uniform)')
 
 -- activation options
 cmd:option('--activation',      '{"Sigmoid","ReLU","PReLU","RReLU","ELU"}',     'activation to use (categorical)')
@@ -44,7 +44,7 @@ cmd:option('--poolMethod',      '{"SpatialMaxPooling", "SpatialAveragePooling", 
 
 cmd:option('--numFCLayers',             '{1, 2}',               'number of fully connected layers')
 cmd:option('--numFCNeurons',            '{10, 128}',           'number of neurons per fully connected layer')
-cmd:option('--fcDropoutProb',           '{0.3, 0.4}',           'probabilities of fully connected dropout')
+cmd:option('--fcDropoutProb',           '{0.3, 0.5}',           'probabilities of fully connected dropout')
 
 cmd:option('--progress',    true,       'display progress bar')
 cmd:option('--silent',      false,      'dont print anything to stdout')
