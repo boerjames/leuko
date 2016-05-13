@@ -3,6 +3,9 @@ require 'xlua'
 require 'torchx'
 require 'image'
 
+require './Extensions.lua'
+require './DataLoader.lua'
+
 local function pixelset(left, top, width, height, image_width, image_height)
     local set = {}
     for j = top, top + height - 1 do
@@ -119,7 +122,6 @@ cmd:option('--validPercentage',     0.15,                   'percentage of data 
 cmd:option('--testPercentage',      0.15,                   'perctage of date to use for testing')
 cmd:option('--numVariants',         10,                     'the number of variants to create for an eye tag')
 cmd:option('--dataSize',            '{3,40,40}',            'the shape of the input data')
-cmd:option('--lcn',                 false,                  'apply Yann LeCun Local Contrast Normalization')
 cmd:option('--silent',              false,                  'dont print anything to stdout')
 cmd:text()
 local opt = cmd:parse(arg or {})
