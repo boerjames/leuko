@@ -19,8 +19,6 @@ RUN yum clean all
 RUN yum update -y
 
 # CUDNN
-#COPY cudnn-7.0-linux-x64-v3.0-prod.tgz /tmp
-
 RUN cd /tmp && \
     curl -fL http://developer.download.nvidia.com/compute/redist/cudnn/v3/cudnn-7.0-linux-x64-v3.0-prod.tgz > cudnn-7.0-linux-x64-v3.0-prod.tgz && \
     tar -zxvf cudnn-7.0-linux-x64-v3.0-prod.tgz && \
@@ -75,9 +73,9 @@ RUN luarocks install luasql-postgres PGSQL_INCDIR=/usr/include/pgsql/server && \
 ENV HYPER_PG_CONN "dbname=hypero user=hypero host=hypero-db"
 
 # EXAMPLE FILES
-RUN cd ~ && \ 
+RUN cd ~ && \
     mkdir examples && \
-    cd examples && \ 
+    cd examples && \
     wget https://raw.githubusercontent.com/Element-Research/hypero/master/examples/neuralnetwork.lua && \
     wget https://raw.githubusercontent.com/nicholas-leonard/dp/master/examples/convolutionneuralnetwork.lua
 

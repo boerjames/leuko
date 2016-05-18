@@ -24,19 +24,20 @@ cmd:option('--maxTries',            30,         'maximum number of epochs to try
 
 --[[network paramters]]
 cmd:option('--network',             'Custom',                       'network to use: Custom | RyaNet')
-cmd:option('--channelSize',         '{8,12,16}',                    'number of output channels for each convolution layer')
-cmd:option('--convStacks',          1,                              'number of convolutions before pooling on each layer')
+cmd:option('--channelSize',         '{8,8,8}',                    'number of output channels for each convolution layer')
+cmd:option('--convStacks',          2,                              'number of convolutions before pooling on each layer')
 cmd:option('--convLocal',           false,                           'first layer be a local convolution (without weight sharing)?')
-cmd:option('--kernelSize',          '{3,3,3,3}',                    'kernel size of each convolution layer (h = w)')
-cmd:option('--kernelStride',        '{1,1,1,1}',                    'kernel stride of each convolution layer (h = w)')
+cmd:option('--kernelSize',          '{3,3,3,3,3,3}',                    'kernel size of each convolution layer (h = w)')
+cmd:option('--kernelStride',        '{1,1,1,1,1,1}',                    'kernel stride of each convolution layer (h = w)')
 cmd:option('--padding',             true,                           'add math.floor(kernelSize/2) padding to the input of each convolution')
-cmd:option('--poolSize',            '{3,3,3,3}',                    'size of the pooling of each convolution layer (h = w)')
-cmd:option('--poolStride',          '{2,2,2,2}',                    'stride of the pooling of each convolution layer (h = w)')
-cmd:option('--pooling',             'SpatialConvolution',            'type of pooling to use: SpatialMaxPooling | SpatialAveragePooling | SpatialConvolution')
-cmd:option('--activation',          'ELU',                         'transfer function like ReLU, PReLU, RReLU, ELU, Tanh, Sigmoid')
-cmd:option('--hiddenSize',          '{100}',                        'size of the dense hidden layers after the convolution')
+cmd:option('--poolSize',            '{3,3,3,3,3,3}',                    'size of the pooling of each convolution layer (h = w)')
+cmd:option('--poolStride',          '{2,2,2,2,2,2}',                    'stride of the pooling of each convolution layer (h = w)')
+cmd:option('--pooling',             'SpatialConvolution',            'type of pooling to use: SpatialMaxPooling | SpatialConvolution')
+cmd:option('--activation',          'ELU',                          'transfer function like ReLU, PReLU, RReLU, ELU, Tanh, Sigmoid')
+cmd:option('--hiddenSize',          '{50,10}',                        'size of the dense hidden layers after the convolution')
 cmd:option('--dropout',             true,                           'use dropout')
-cmd:option('--dropoutProb',         '{0.1,0.5}',                    'dropout probabilities for 1) conv 2) fc')
+cmd:option('--dropoutProb',         '{0.0,0.5}',                    'dropout probabilities for 1) conv 2) fc')
+cmd:option('--alpha',               0.4,                           'alpha parameter for some activation functions')
 
 --[[data parameters]]
 cmd:option('--dataset',             'leuko-equal.t7',   'which dataset to use')
@@ -86,47 +87,11 @@ if opt.network == 'Custom' then
 
     -- convolution and pooling layers
     inputSize = ds:imageSize('c')
-    local start = 1
-
-    -- if desired, start with a locally connected convolution layer
-    if opt.convLocal then
-        start = start + 1
-        if opt.dropout and (opt.dropoutProb[1] or 0) > 0 then
-           -- dropout can be useful for regularization
-           cnn:add(nn.SpatialDropout(opt.dropoutProb[1]))
-        end
-        cnn:add(nn.SpatialConvolutionLocal(
-           inputSize, opt.channelSize[1],
-           ds:imageSize('w'), ds:imageSize('h'),
-           opt.kernelSize[1], opt.kernelSize[1],
-           opt.kernelStride[1], opt.kernelStride[1],
-           opt.padding and math.floor(opt.kernelSize[1]/2) or 0
-        ))
-        inputSize = opt.channelSize[1]
-        cnn:add(nn[opt.activation]())
-        if opt.poolSize[1] and opt.poolSize[1] > 0 then
-           if opt.pooling ~= 'SpatialConvolution' then
-               cnn:add(nn[opt.pooling](
-               opt.poolSize[1], opt.poolSize[1],
-               opt.poolStride[1] or opt.poolSize[1],
-               opt.poolStride[1] or opt.poolSize[1]
-           ))
-           else
-               cnn:add(nn.SpatialConvolution(
-               opt.channelSize[1], opt.channelSize[1],
-               opt.poolSize[1], opt.poolSize[1],
-               opt.poolStride[1], opt.poolStride[1]
-               ))
-               cnn:add(nn[opt.activation]())
-           end
-        end
-    end
 
     -- normal convolution and pooling layers
-    for i=start,#opt.channelSize do
+    for i=1,#opt.channelSize do
        for j=1,opt.convStacks do
            if opt.dropout and (opt.dropoutProb[1] or 0) > 0 then
-              -- dropout can be useful for regularization
               cnn:add(nn.SpatialDropout(opt.dropoutProb[1]))
            end
            cnn:add(nn.SpatialConvolution(
@@ -136,23 +101,24 @@ if opt.network == 'Custom' then
               opt.padding and math.floor(opt.kernelSize[i]/2) or 0
            ))
            inputSize = opt.channelSize[i]
-           cnn:add(nn[opt.activation]())
+           cnn:add(nn[opt.activation](opt.alpha))
        end
        if opt.poolSize[i] and opt.poolSize[i] > 0 then
-          if opt.pooling ~= 'SpatialConvolution' then
+           if opt.pooling == 'SpatialMaxPooling' then
               cnn:add(nn[opt.pooling](
               opt.poolSize[i], opt.poolSize[i],
               opt.poolStride[i] or opt.poolSize[i],
               opt.poolStride[i] or opt.poolSize[i]
-          ))
-          else
+              ))
+           elseif opt.pooling == 'SpatialConvolution' then
               cnn:add(nn.SpatialConvolution(
               opt.channelSize[i], opt.channelSize[i],
               opt.poolSize[i], opt.poolSize[i],
-              opt.poolStride[i], opt.poolStride[i]
+              opt.poolStride[i], opt.poolStride[i],
+              opt.padding and math.floor(opt.poolSize[i]/2) or 0
               ))
-              cnn:add(nn[opt.activation]())
-          end
+              cnn:add(nn[opt.activation](opt.alpha))
+           end
        end
     end
 
@@ -168,7 +134,7 @@ if opt.network == 'Custom' then
           cnn:add(nn.Dropout(opt.dropoutProb[2]))
        end
        cnn:add(nn.Linear(inputSize, hiddenSize))
-       cnn:add(nn[opt.activation]())
+       cnn:add(nn[opt.activation](opt.alpha))
        inputSize = hiddenSize
     end
 
@@ -178,6 +144,7 @@ if opt.network == 'Custom' then
     end
     cnn:add(nn.Linear(inputSize, #(ds:classes())))
     cnn:add(nn.LogSoftMax())
+
 elseif not (opt.network == 'Custom') then
     print('Using network ' .. opt.network)
     cnn = require('./Models.lua')(opt.network, ds)
@@ -199,7 +166,7 @@ train = dp.Optimizer{
    epoch_callback = function(model, report) -- called every epoch
       if report.epoch > 0 then
          if opt.lrDecay == 'adaptive' then
-            opt.learningRate = opt.learningRate*ad.decay
+            opt.learningRate = opt.learningRate * ad.decay
             ad.decay = 1
          elseif opt.lrDecay == 'schedule' and opt.schedule[report.epoch] then
             opt.learningRate = opt.schedule[report.epoch]
