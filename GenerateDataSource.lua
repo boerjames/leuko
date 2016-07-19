@@ -120,7 +120,7 @@ cmd:option('--user',                'facetag',              'the user to use')
 cmd:option('--password',            '',                     'the password for the user, do not fill this in, use cmd line')
 cmd:option('--validPercentage',     0.15,                   'percentage of data to use for validation')
 cmd:option('--testPercentage',      0.15,                   'perctage of date to use for testing')
-cmd:option('--numVariants',         10,                     'the number of variants to create for an eye tag')
+cmd:option('--numVariants',         1,                     'the number of variants to create for an eye tag')
 cmd:option('--dataSize',            '{3,40,40}',            'the shape of the input data')
 cmd:option('--silent',              false,                  'dont print anything to stdout')
 cmd:text()
@@ -234,7 +234,8 @@ for i = 1,  num_image_rows do
                 local outer_crop = outercrop(img, crop, 0.2)
                 for variant = 1, opt.numVariants do
 
-                    local var = augment(outer_crop, 40)
+                    --local var = augment(outer_crop, 40)
+		    local var = outer_crop
                     if v["label"] == "H" then
                         image.save(normalPath .. "/" .. v["image_id"] .. "-" .. v["id"] .. "-" .. variant .. ".jpg", var)
                     elseif v["label"] == "L" then
