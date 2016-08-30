@@ -1,6 +1,6 @@
 FROM ubuntu:14.04
 
-RUN apt-get install -y postgresql
+RUN apt-get install -y postgresql-9.3
 
 USER postgres
 RUN service postgresql start && \
